@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="pt-BR" translate="no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="google" content="notranslate" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cathedral Vouchers</title>
+    <script>
+      // Aplica o título salvo ANTES do React carregar — elimina o flash
+      try {
+        var t = localStorage.getItem('app_title');
+        if (t) document.title = t;
+      } catch(e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

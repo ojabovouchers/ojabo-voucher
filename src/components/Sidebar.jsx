@@ -1,0 +1,88 @@
+import { NavLink, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useAuth } from './AppProvider'
+
+const links = [
+  { to: '/admin', label: 'Dashboard', icon: '⊞', end: true },
+  { to: '/admin/clientes', label: 'Clientes & Vouchers', icon: '◈' },
+  { to: '/admin/operadores', label: 'Operadores', icon: '◉' },
+  { to: '/admin/chaves-pix', label: 'Chaves PIX', icon: '₿' },
+  { to: '/admin/relatorios', label: 'Relatórios', icon: '◧' },
+  { to: '/admin/configuracoes', label: 'Configurações', icon: '◎' },
+]
+
+export default function Sidebar({ collapsed, onToggle }) {
+  const { signOut } = useAuth()
+  const navigate = useNavigate()
+  const [sidebarName, setSidebarName] = useState(localStorage.getItem('sidebar_name') || '')
+  const [sidebarColor, setSidebarColor] = useState(localStorage.getItem('sidebar_color') || '#1a1a2e')
+  const [sidebarFont, setSidebarFont] = useState(localStorage.getItem('sidebar_font') || "'Segoe UI', Arial, sans-serif")
+  const [sidebarNameColor, setSidebarNameColor] = useState(localStorage.getItem('sidebar_name_color') || '#e2b04a')
+  const [sidebarMenuColor, setSidebarMenuColor] = useState(localStorage.getItem('sidebar_menu_color') || 'rgba(255,255,255,0.65)')
+
+  function loadFromStorage() {
+    setSidebarName(localStorage.getItem('sidebar_name') || '')
+    setSidebarColor(localStorage.getItem('sidebar_color') || '#1a1a2e')
+    setSidebarFont(localStorage.getItem('sidebar_font') || "'Segoe UI', Arial, sans-serif")
+    setSidebarNameColor(localStorage.getItem('sidebar_name_color') || '#e2b04a')
+    setSidebarMenuColor(localStorage.getItem('sidebar_menu_color') || 'rgba(255,255,255,0.65)')
+  }
+
+  useEffect(() => {
+    loadFromStorage()
+    window.addEventListener('sidebar-settings-updated', loadFromStorage)
+    return () => window.removeEventListener('sidebar-settings-updated', loadFromStorage)
+  }, [])
+
+  async function handleLogout() {
+    await signOut()
+    navigate('/login')
+  }
+
+  return (
+    <div className="sidebar" style={{ width: collapsed ? 56 : 220, transition: 'width 0.2s ease', overflow: 'hidden', background: sidebarColor, fontFamily: sidebarFont }}>
+      <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'space-between', padding: collapsed ? '20px 0' : '24px 20px 20px' }}>
+        {!collapsed && (
+          <div>
+            <span style={{ color: sidebarNameColor, fontSize: 18, fontWeight: 800, letterSpacing: 1 }}>{sidebarName || 'CATHEDRAL'}</span>
+            <small style={{ display: 'block', color: 'rgba(255,255,255,0.4)', fontSize: 11, marginTop: 2 }}>Sistema de Vouchers</small>
+          </div>
+        )}
+        <button onClick={onToggle} title={collapsed ? 'Expandir menu' : 'Recolher menu'}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)', padding: 4, display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            {collapsed ? <path d="M9 18l6-6-6-6"/> : <path d="M15 18l-6-6 6-6"/>}
+          </svg>
+        </button>
+      </div>
+
+      <nav style={{ padding: '12px 0', flex: 1 }}>
+        {links.map(l => (
+          <NavLink key={l.to} to={l.to} end={l.end}
+            title={collapsed ? l.label : ''}
+            className={({ isActive }) => isActive ? 'active' : ''}
+            style={{ justifyContent: collapsed ? 'center' : 'flex-start', padding: collapsed ? '10px 0' : '10px 20px', color: sidebarMenuColor }}>
+            <span style={{ fontSize: 16, flexShrink: 0 }}>{l.icon}</span>
+            {!collapsed && l.label}
+          </NavLink>
+        ))}
+      </nav>
+
+      <div style={{ padding: collapsed ? '12px 0' : '16px 20px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'center' }}>
+        {collapsed ? (
+          <button onClick={handleLogout} title="Sair"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center' }}>
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+            </svg>
+          </button>
+        ) : (
+          <button onClick={handleLogout} className="btn btn-secondary btn-sm"
+            style={{ width: '100%', justifyContent: 'center', color: 'rgba(255,255,255,0.5)', borderColor: 'rgba(255,255,255,0.1)' }}>
+            Sair
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
