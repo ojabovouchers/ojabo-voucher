@@ -93,12 +93,32 @@ export function getVoucherSettings() {
   }
 }
 
+async function urlToBase64(url) {
+  try {
+    const res = await fetch(url)
+    const blob = await res.blob()
+    return new Promise((resolve) => {
+      const reader = new FileReader()
+      reader.onloadend = () => resolve(reader.result)
+      reader.readAsDataURL(blob)
+    })
+  } catch {
+    return null
+  }
+}
+
 export async function generateVoucherImage(voucher, locationName) {
   const t = getVoucherSettings()
   const logoUrl = localStorage.getItem('cathedral_logo') || null
 
-  const logoHtml = logoUrl
-    ? `<img src="${logoUrl}" style="height:38px; object-fit:contain; filter:${t.logoFilter};" crossorigin="anonymous" />`
+  // Converte para base64 para evitar bloqueio CORS no html2canvas
+  let logoSrc = null
+  if (logoUrl) {
+    logoSrc = logoUrl.startsWith('data:') ? logoUrl : await urlToBase64(logoUrl)
+  }
+
+  const logoHtml = logoSrc
+    ? `<img src="${logoSrc}" style="height:38px; object-fit:contain; filter:${t.logoFilter};" />`
     : `<span style="font-size:22px; font-weight:800; letter-spacing:2px; color:${t.accentColor};">CATHEDRAL</span>`
 
   // Define texto de validade de local
