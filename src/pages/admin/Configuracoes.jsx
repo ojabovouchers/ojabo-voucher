@@ -83,11 +83,20 @@ export default function Configuracoes() {
   const [locations, setLocations] = useState([])
   const [generating, setGenerating] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [logoLoading, setLogoLoading] = useState(false)
   const [establishmentName, setEstablishmentName] = useState('')
 
   useEffect(() => {
-    const savedLogo = localStorage.getItem('cathedral_logo')
-    if (savedLogo) setLogoPreview(savedLogo)
+    // Carrega logo do Supabase Storage
+    supabase.storage.from('branding').createSignedUrl('logo', 3600).then(({ data }) => {
+      if (data?.signedUrl) {
+        setLogoPreview(data.signedUrl)
+        localStorage.setItem('cathedral_logo', data.signedUrl)
+      } else {
+        const savedLogo = localStorage.getItem('cathedral_logo')
+        if (savedLogo) setLogoPreview(savedLogo)
+      }
+    })
 
     const savedTemplate = localStorage.getItem('voucher_template') || 'classico'
     setSelectedTemplate(savedTemplate)
@@ -110,18 +119,36 @@ export default function Configuracoes() {
   function handleLogoUpload(e) {
     const file = e.target.files[0]
     if (!file || !file.type.startsWith('image/')) { toast('Selecione uma imagem.', 'error'); return }
+    setLogo(file)
     const reader = new FileReader()
-    reader.onload = ev => { setLogoPreview(ev.target.result); setLogo(ev.target.result) }
+    reader.onload = ev => setLogoPreview(ev.target.result)
     reader.readAsDataURL(file)
   }
 
-  function saveLogo() {
+  async function saveLogo() {
     if (!logo) return
-    localStorage.setItem('cathedral_logo', logo)
-    toast('Logo salva!', 'success')
+    setLogoLoading(true)
+    try {
+      const { error } = await supabase.storage
+        .from('branding')
+        .upload('logo', logo, { upsert: true, contentType: logo.type })
+      if (error) throw error
+
+      const { data } = await supabase.storage.from('branding').createSignedUrl('logo', 3600)
+      if (data?.signedUrl) {
+        localStorage.setItem('cathedral_logo', data.signedUrl)
+        setLogoPreview(data.signedUrl)
+      }
+      toast('Logo salva com sucesso!', 'success')
+    } catch (err) {
+      toast('Erro ao salvar logo: ' + err.message, 'error')
+    } finally {
+      setLogoLoading(false)
+    }
   }
 
-  function removeLogo() {
+  async function removeLogo() {
+    await supabase.storage.from('branding').remove(['logo'])
     localStorage.removeItem('cathedral_logo')
     setLogo(null)
     setLogoPreview(null)
@@ -229,7 +256,7 @@ export default function Configuracoes() {
             <input type="file" accept="image/*" onChange={handleLogoUpload} />
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn btn-primary" onClick={saveLogo} disabled={!logo}>Salvar Logo</button>
+            <button className="btn btn-primary" onClick={saveLogo} disabled={!logo || logoLoading}>{logoLoading ? 'Salvando...' : 'Salvar Logo'}</button>
             {logoPreview && <button className="btn btn-danger" onClick={removeLogo}>Remover</button>}
           </div>
         </div>
