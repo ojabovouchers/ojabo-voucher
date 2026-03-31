@@ -1,8 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
-import { useAuth } from '../../components/AppProvider'
+import { useAuth, useToast } from '../../components/AppProvider'
 import { formatCurrency, formatDate } from '../../lib/utils'
-import { useToast } from '../../components/AppProvider'
 
 export default function ValidarVoucher() {
   const { profile } = useAuth()
@@ -12,6 +11,13 @@ export default function ValidarVoucher() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
+  const [locations, setLocations] = useState([])
+  const [selectedLocation, setSelectedLocation] = useState('')
+
+  useEffect(() => {
+    supabase.from('locations').select('*').order('name')
+      .then(({ data }) => setLocations(data || []))
+  }, [])
 
   async function searchVoucher(e) {
     e.preventDefault()
@@ -32,17 +38,14 @@ export default function ValidarVoucher() {
       setError('Voucher não encontrado. Verifique o código digitado.')
       return
     }
-
     if (data.is_used) {
       setError(`Voucher já utilizado em ${data.used_at ? new Date(data.used_at).toLocaleString('pt-BR') : 'data desconhecida'}.`)
       return
     }
-
     if (data.expires_at && new Date(data.expires_at) < new Date()) {
       setError(`Voucher expirado em ${formatDate(data.expires_at)}.`)
       return
     }
-
     setVoucher(data)
   }
 
@@ -56,6 +59,7 @@ export default function ValidarVoucher() {
         is_used: true,
         used_at: new Date().toISOString(),
         operator_id: profile?.id || null,
+        location_id: selectedLocation || profile?.location_id || null,
       })
       .eq('id', voucher.id)
       .eq('is_used', false)
@@ -69,6 +73,7 @@ export default function ValidarVoucher() {
 
     setConfirmed(true)
     setCode('')
+    setSelectedLocation('')
   }
 
   function reset() {
@@ -76,6 +81,7 @@ export default function ValidarVoucher() {
     setVoucher(null)
     setError('')
     setConfirmed(false)
+    setSelectedLocation('')
   }
 
   return (
@@ -88,21 +94,11 @@ export default function ValidarVoucher() {
         {confirmed && (
           <div className="card" style={{ textAlign: 'center', padding: '40px 24px' }}>
             <div style={{ fontSize: 56, marginBottom: 12 }}>✅</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#065f46', marginBottom: 8 }}>
-              Voucher validado!
-            </div>
-            <div style={{ fontSize: 38, fontWeight: 800, color: '#1a1a2e', marginBottom: 6 }}>
-              {formatCurrency(voucher.value)}
-            </div>
-            <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 4 }}>
-              Cliente: <strong>{voucher.clients?.name}</strong>
-            </div>
-            <div style={{ fontFamily: 'monospace', fontSize: 13, color: '#9ca3af', marginBottom: 28 }}>
-              {voucher.code}
-            </div>
-            <button className="btn btn-primary"
-              style={{ width: '100%', justifyContent: 'center', padding: '12px' }}
-              onClick={reset}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#065f46', marginBottom: 8 }}>Voucher validado!</div>
+            <div style={{ fontSize: 38, fontWeight: 800, color: '#1a1a2e', marginBottom: 6 }}>{formatCurrency(voucher.value)}</div>
+            <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 4 }}>Cliente: <strong>{voucher.clients?.name}</strong></div>
+            <div style={{ fontFamily: 'monospace', fontSize: 13, color: '#9ca3af', marginBottom: 28 }}>{voucher.code}</div>
+            <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '12px' }} onClick={reset}>
               Validar outro voucher
             </button>
           </div>
@@ -119,8 +115,7 @@ export default function ValidarVoucher() {
                   onChange={e => { setCode(e.target.value); setError(''); setVoucher(null) }}
                   placeholder="CATH-XXXX-XXXX"
                   style={{ fontSize: 18, textTransform: 'uppercase', letterSpacing: 2, textAlign: 'center', padding: '14px' }}
-                  autoFocus
-                  autoComplete="off"
+                  autoFocus autoComplete="off"
                 />
               </div>
               {!voucher && (
@@ -150,20 +145,28 @@ export default function ValidarVoucher() {
                     </div>
                     <span className="badge badge-green">Válido</span>
                   </div>
-                  <div style={{ fontSize: 36, fontWeight: 800, color: '#1a1a2e', marginBottom: 8 }}>
-                    {formatCurrency(voucher.value)}
-                  </div>
-                  <div style={{ fontSize: 13, color: '#374151' }}>
-                    Cliente: <strong>{voucher.clients?.name}</strong>
-                  </div>
+                  <div style={{ fontSize: 36, fontWeight: 800, color: '#1a1a2e', marginBottom: 8 }}>{formatCurrency(voucher.value)}</div>
+                  <div style={{ fontSize: 13, color: '#374151' }}>Cliente: <strong>{voucher.clients?.name}</strong></div>
                   {voucher.locations?.name && (
-                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
-                      Válido em: {voucher.locations.name}
-                    </div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>Restrito a: {voucher.locations.name}</div>
                   )}
                   <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
                     {voucher.expires_at ? `Válido até ${formatDate(voucher.expires_at)}` : 'Sem data de validade'}
                   </div>
+                </div>
+
+                {/* Seleção de local */}
+                <div className="form-group" style={{ marginBottom: 16 }}>
+                  <label>Unidade onde está sendo validado</label>
+                  <select value={selectedLocation} onChange={e => setSelectedLocation(e.target.value)}>
+                    <option value="">Selecione a unidade...</option>
+                    {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                  </select>
+                  {locations.length === 0 && (
+                    <small style={{ color: '#9ca3af', fontSize: 12, marginTop: 4, display: 'block' }}>
+                      Nenhuma unidade cadastrada. O voucher será validado sem local.
+                    </small>
+                  )}
                 </div>
 
                 <div style={{ display: 'flex', gap: 10 }}>
