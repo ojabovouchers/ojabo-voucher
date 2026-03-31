@@ -241,8 +241,8 @@ export default function Operadores() {
       const serviceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 
-      // Gera um link de recuperação de senha (funciona para usuários já existentes)
-      const res = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
+      // Usa resetPasswordForEmail via Admin API — envia o email automaticamente
+      const res = await fetch(`${supabaseUrl}/auth/v1/recover`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -250,40 +250,17 @@ export default function Operadores() {
           'Authorization': `Bearer ${serviceKey}`,
         },
         body: JSON.stringify({
-          type: 'recovery',
           email: op.email,
-          options: {
-            redirect_to: `${window.location.origin}/redefinir-senha`,
-          }
+          gotrue_meta_security: {},
         }),
       })
 
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.message || 'Erro ao gerar link.')
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.message || err.msg || 'Erro ao enviar email.')
+      }
 
-      // Envia email manualmente com o link gerado
-      const link = data.action_link
-      const estName = localStorage.getItem('establishment_name') || localStorage.getItem('sidebar_name') || 'Cathedral Vouchers'
-
-      await fetch(`${supabaseUrl}/functions/v1/send-install-email`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${serviceKey}`,
-        },
-        body: JSON.stringify({
-          to: op.email,
-          name: op.name,
-          establishment: estName,
-          installUrl: `${window.location.origin}/instalar`,
-          resetLink: link,
-          type: 'reset',
-        }),
-      }).catch(() => {})
-
-      // Fallback: abre o link direto se edge function falhar
-      // Na prática o Supabase envia o email de recovery automaticamente
-      toast(`Link de redefinição de senha enviado para ${op.email}!`, 'success')
+      toast(`Email de redefinição enviado para ${op.email}!`, 'success')
     } catch (err) {
       toast(err.message || 'Erro ao reenviar convite.', 'error')
     } finally {

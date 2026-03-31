@@ -16,43 +16,34 @@ export default function RedefinirSenha() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    async function init() {
-      const hash = window.location.hash
-      const isConvite = hash.includes('type=invite')
-      const isRecovery = hash.includes('type=recovery')
+    let unsubscribe = () => {}
 
-      if (!isConvite && !isRecovery) {
-        // Sem token na URL — verifica se já tem sessão ativa de recuperação
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session) {
-          setSessaoValida(true)
+    async function init() {
+      // Escuta mudanças de autenticação PRIMEIRO antes de qualquer verificação
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+          if (session) {
+            setSessaoValida(true)
+            setVerificando(false)
+          }
         }
+      })
+      unsubscribe = subscription.unsubscribe
+
+      // Verifica se já há sessão ativa
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        setSessaoValida(true)
         setVerificando(false)
         return
       }
 
-      // Tem token — deixa o Supabase processar via onAuthStateChange
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if ((event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') && session) {
-          // Tem sessão válida — mostra formulário de senha
-          setSessaoValida(true)
-          setVerificando(false)
-
-          // Se for convite (SIGNED_IN), desloga imediatamente após capturar a sessão
-          // para forçar o usuário a criar senha e logar manualmente depois
-          if (event === 'SIGNED_IN' && isConvite) {
-            // Não faz nada — deixa o formulário de senha aparecer
-          }
-        }
-      })
-
-      // Timeout de segurança
-      setTimeout(() => setVerificando(false), 3000)
-
-      return () => subscription.unsubscribe()
+      // Timeout de segurança — se em 5s não vier sessão, mostra link inválido
+      setTimeout(() => setVerificando(false), 5000)
     }
 
     init()
+    return () => unsubscribe()
   }, [])
 
   async function handleSubmit(e) {
