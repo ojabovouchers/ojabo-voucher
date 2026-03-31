@@ -96,6 +96,9 @@ export default function Operadores() {
           body: JSON.stringify({
             email: form.email,
             data: { name: form.name },
+            options: {
+              redirect_to: `${window.location.origin}/redefinir-senha`,
+            },
           }),
         })
 
