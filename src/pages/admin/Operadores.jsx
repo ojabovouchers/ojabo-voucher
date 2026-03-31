@@ -110,7 +110,25 @@ export default function Operadores() {
           location_id: form.location_id || null,
         })
         if (opError) throw opError
-        toast(`Convite enviado para ${form.email}! O operador receberá um email para definir a senha.`, 'success')
+
+        // Envia segundo email com link de instalação do app
+        const estName = localStorage.getItem('establishment_name') || localStorage.getItem('sidebar_name') || 'Cathedral Vouchers'
+        const installUrl = `${window.location.origin}/instalar`
+        await fetch(`${supabaseUrl}/functions/v1/send-install-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${serviceKey}`,
+          },
+          body: JSON.stringify({
+            to: form.email,
+            name: form.name,
+            establishment: estName,
+            installUrl,
+          }),
+        }).catch(() => {}) // falha silenciosa se edge function não existir
+
+        toast(`Convite enviado para ${form.email}! O operador receberá os emails de acesso e instalação.`, 'success')
       }
       setShowModal(false)
       resetForm()
