@@ -8,8 +8,8 @@ const links = [
   { to: '/admin/operadores', label: 'Operadores', icon: '◉' },
   { to: '/admin/chaves-pix', label: 'Chaves PIX', icon: '₿' },
   { to: '/admin/relatorios', label: 'Relatórios', icon: '◧' },
-  { to: '/admin/configuracoes', label: 'Configurações', icon: '◎' },
   { to: '/admin/validar', label: 'Validar Voucher', icon: '✓' },
+  { to: '/admin/configuracoes', label: 'Configurações', icon: '◎' },
 ]
 
 export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }) {
