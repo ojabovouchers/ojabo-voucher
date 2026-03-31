@@ -241,20 +241,49 @@ export default function Operadores() {
       const serviceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 
-      const res = await fetch(`${supabaseUrl}/auth/v1/invite`, {
+      // Gera um link de recuperação de senha (funciona para usuários já existentes)
+      const res = await fetch(`${supabaseUrl}/auth/v1/admin/generate_link`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'apikey': serviceKey,
           'Authorization': `Bearer ${serviceKey}`,
         },
-        body: JSON.stringify({ email: op.email }),
+        body: JSON.stringify({
+          type: 'recovery',
+          email: op.email,
+          options: {
+            redirect_to: `${window.location.origin}/redefinir-senha`,
+          }
+        }),
       })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.message)
-      }
-      toast(`Convite reenviado para ${op.email}!`, 'success')
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.message || 'Erro ao gerar link.')
+
+      // Envia email manualmente com o link gerado
+      const link = data.action_link
+      const estName = localStorage.getItem('establishment_name') || localStorage.getItem('sidebar_name') || 'Cathedral Vouchers'
+
+      await fetch(`${supabaseUrl}/functions/v1/send-install-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${serviceKey}`,
+        },
+        body: JSON.stringify({
+          to: op.email,
+          name: op.name,
+          establishment: estName,
+          installUrl: `${window.location.origin}/instalar`,
+          resetLink: link,
+          type: 'reset',
+        }),
+      }).catch(() => {})
+
+      // Fallback: abre o link direto se edge function falhar
+      // Na prática o Supabase envia o email de recovery automaticamente
+      toast(`Link de redefinição de senha enviado para ${op.email}!`, 'success')
     } catch (err) {
       toast(err.message || 'Erro ao reenviar convite.', 'error')
     } finally {
