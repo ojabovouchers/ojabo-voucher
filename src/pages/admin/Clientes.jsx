@@ -74,7 +74,7 @@ export default function Clientes() {
     try {
       const qty = parseInt(voucherForm.quantity)
       const value = parseFloat(voucherForm.value)
-      const expires_at = voucherForm.no_expiry ? null : voucherForm.expires_at || null
+      const expires_at = voucherForm.no_expiry ? null : (voucherForm.expires_at ? voucherForm.expires_at + 'T23:59:59.000Z' : null)
       const location_id = voucherForm.location_id || null
 
       const vouchers = Array.from({ length: qty }, () => ({
@@ -108,7 +108,7 @@ export default function Clientes() {
     if (!showEditVoucher) return
     setSaving(true)
     try {
-      const expires_at = editVoucherForm.no_expiry ? null : editVoucherForm.expires_at || null
+      const expires_at = editVoucherForm.no_expiry ? null : (editVoucherForm.expires_at ? editVoucherForm.expires_at + 'T23:59:59.000Z' : null)
       const { error } = await supabase.from('vouchers').update({
         value: parseFloat(editVoucherForm.value),
         expires_at,
@@ -538,8 +538,9 @@ export default function Clientes() {
                       <button className="btn btn-sm" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0' }}
                         onClick={() => sendWhatsApp(showVouchersOf.client, [v])}>WA</button>
                       <button className="btn btn-secondary btn-sm" onClick={() => openEditVoucher(v)}>✏️</button>
-                      <button className="btn btn-sm" style={{ background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca' }}
-                        onClick={() => deleteVoucher(v)}>🗑</button>
+                      <button className="btn btn-sm" title="Deletar"
+                        style={{ background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca', fontWeight: 700, fontSize: 15 }}
+                        onClick={() => deleteVoucher(v)}>✕</button>
                     </div>
                   )}
                   {v.is_used && v.used_at && (
