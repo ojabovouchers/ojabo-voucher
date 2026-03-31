@@ -145,6 +145,14 @@ export default function Clientes() {
     setShowVouchersOf({ client, vouchers: data || [] })
   }
 
+  async function deleteClient(client) {
+    if (!window.confirm(`Deletar cliente ${client.name}? Esta ação não pode ser desfeita.`)) return
+    const { error } = await supabase.from('clients').delete().eq('id', client.id)
+    if (error) { toast('Erro ao deletar cliente.', 'error'); return }
+    toast('Cliente deletado.', 'success')
+    loadClients()
+  }
+
   function openEditVoucher(v) {
     setEditVoucherForm({
       value: v.value,
@@ -340,6 +348,11 @@ export default function Clientes() {
                         <div style={{ display: 'flex', gap: 6 }}>
                           <button className="btn btn-secondary btn-sm" onClick={() => openGenerateVouchers(client)}>+ Voucher</button>
                           <button className="btn btn-secondary btn-sm" onClick={() => editClient(client)}>Editar</button>
+                          {total === 0 && (
+                            <button className="btn btn-sm" title="Deletar cliente"
+                              style={{ background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca', fontWeight: 700 }}
+                              onClick={() => deleteClient(client)}>✕</button>
+                          )}
                           {total > 0 && (
                             <button className="btn btn-sm" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0' }}
                               onClick={() => sendWhatsApp(client, client.vouchers || [])}>

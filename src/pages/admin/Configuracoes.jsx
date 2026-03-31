@@ -98,14 +98,37 @@ export default function Configuracoes() {
       }
     })
 
-    const savedTemplate = localStorage.getItem('voucher_template') || 'classico'
-    setSelectedTemplate(savedTemplate)
-
-    const savedCustomBg = localStorage.getItem('voucher_custom_bg')
-    if (savedCustomBg) setCustomBgPreview(savedCustomBg)
-
-    const savedFooter = localStorage.getItem('voucher_footer_text') || 'Apresente este voucher ao operador de caixa para efetuar o desconto'
-    setFooterText(savedFooter)
+    // Carrega configurações do Supabase
+    supabase.from('settings').select('key, value').in('key', [
+      'voucher_template', 'voucher_footer_text', 'voucher_custom_bg',
+      'voucher_color_text', 'voucher_color_accent', 'voucher_color_muted'
+    ]).then(({ data }) => {
+      if (!data) return
+      const map = {}
+      data.forEach(s => { map[s.key] = s.value })
+      if (map.voucher_template) {
+        setSelectedTemplate(map.voucher_template)
+        localStorage.setItem('voucher_template', map.voucher_template)
+      } else {
+        setSelectedTemplate(localStorage.getItem('voucher_template') || 'classico')
+      }
+      if (map.voucher_footer_text) {
+        setFooterText(map.voucher_footer_text)
+        localStorage.setItem('voucher_footer_text', map.voucher_footer_text)
+      } else {
+        setFooterText(localStorage.getItem('voucher_footer_text') || 'Apresente este voucher ao operador de caixa para efetuar o desconto')
+      }
+      if (map.voucher_custom_bg) {
+        setCustomBgPreview(map.voucher_custom_bg)
+        localStorage.setItem('voucher_custom_bg', map.voucher_custom_bg)
+      } else {
+        const savedCustomBg = localStorage.getItem('voucher_custom_bg')
+        if (savedCustomBg) setCustomBgPreview(savedCustomBg)
+      }
+      // Carrega cores
+      const colorKeys = ['voucher_color_text', 'voucher_color_accent', 'voucher_color_muted']
+      colorKeys.forEach(k => { if (map[k]) localStorage.setItem(k, map[k]) })
+    })
 
     supabase.from('locations').select('*').order('name').then(({ data }) => {
       setLocations(data || [])
@@ -171,19 +194,51 @@ export default function Configuracoes() {
     setColorOverrides(prev => ({ ...prev, [key]: value }))
     if (value === null) localStorage.removeItem(key)
     else localStorage.setItem(key, value)
+    // Persiste no Supabase em background
+    if (value === null) {
+      supabase.from('settings').delete().eq('key', key).then(() => {})
+    } else {
+      supabase.from('settings').upsert({ key, value }, { onConflict: 'key' }).then(() => {})
+    }
   }
 
-  function saveTemplate() {
+  async function saveTemplate() {
     if (selectedTemplate === 'custom' && !customBgPreview) {
       toast('Faça upload de uma imagem de fundo primeiro.', 'error')
       return
     }
-    localStorage.setItem('voucher_template', selectedTemplate)
-    if (selectedTemplate === 'custom' && customBg) {
-      localStorage.setItem('voucher_custom_bg', customBg)
+    setSaving(true)
+    try {
+      localStorage.setItem('voucher_template', selectedTemplate)
+      localStorage.setItem('voucher_footer_text', footerText)
+
+      const toSave = [
+        { key: 'voucher_template', value: selectedTemplate },
+        { key: 'voucher_footer_text', value: footerText },
+      ]
+
+      if (selectedTemplate === 'custom' && customBg) {
+        localStorage.setItem('voucher_custom_bg', customBg)
+        toSave.push({ key: 'voucher_custom_bg', value: customBg })
+      }
+
+      // Salva cores personalizadas
+      const colorKeys = ['voucher_color_text', 'voucher_color_accent', 'voucher_color_muted']
+      colorKeys.forEach(k => {
+        const val = localStorage.getItem(k)
+        if (val) toSave.push({ key: k, value: val })
+      })
+
+      await Promise.all(toSave.map(({ key, value }) =>
+        supabase.from('settings').upsert({ key, value }, { onConflict: 'key' })
+      ))
+
+      toast('Configurações do voucher salvas!', 'success')
+    } catch {
+      toast('Erro ao salvar.', 'error')
+    } finally {
+      setSaving(false)
     }
-    localStorage.setItem('voucher_footer_text', footerText)
-    toast('Configurações do voucher salvas!', 'success')
   }
 
   async function saveEstablishment(e) {
