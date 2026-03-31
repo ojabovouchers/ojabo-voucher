@@ -24,6 +24,7 @@ export default function AdminLayout() {
 
   useEffect(() => { document.title = branding.appTitle }, [branding.appTitle])
 
+  if (sessionStorage.getItem('redefining_password') === '1') return null
   if (!user) return <Navigate to="/login" replace />
   if (profile && profile.role !== 'admin') return <Navigate to="/operador" replace />
 

@@ -25,8 +25,11 @@ export default function Login() {
     }
   }, [])
 
-  // Se já está logado, redireciona para o lugar certo
+  // Se já está logado, redireciona — mas ignora se estiver em fluxo de redefinição de senha
   useEffect(() => {
+    if (sessionStorage.getItem('redefining_password') === '1') return
+    const hash = window.location.hash
+    if (hash.includes('type=recovery') || hash.includes('type=invite')) return
     if (user && profile) {
       if (profile.role === 'admin') navigate('/admin', { replace: true })
       else navigate('/operador', { replace: true })

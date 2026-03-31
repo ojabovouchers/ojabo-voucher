@@ -34,6 +34,7 @@ export default function Operador() {
   const [genLoading, setGenLoading] = useState(false)
 
   useEffect(() => {
+    if (sessionStorage.getItem('redefining_password') === '1') return
     if (!user) navigate('/login', { replace: true })
   }, [user])
 
@@ -121,7 +122,7 @@ export default function Operador() {
       if (clientErr) throw clientErr
 
       // 2. Cria o voucher
-      const expires_at = genForm.no_expiry ? null : genForm.expires_at || null
+      const expires_at = genForm.no_expiry ? null : (genForm.expires_at ? genForm.expires_at + 'T23:59:59' : null)
       const { data: newVoucher, error: vErr } = await supabase
         .from('vouchers')
         .insert({
