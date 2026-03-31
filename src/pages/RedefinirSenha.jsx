@@ -42,15 +42,42 @@ export default function RedefinirSenha() {
     if (password.length < 6) { setError('A senha deve ter no mínimo 6 caracteres.'); return }
 
     setLoading(true)
-    const { error: err } = await supabase.auth.updateUser({ password })
-    if (err) { setLoading(false); setError('Erro ao salvar senha. Tente novamente.'); return }
+    try {
+      // Tenta primeiro via updateUser padrão
+      const { error: err } = await supabase.auth.updateUser({ password })
 
-    // Desloga e redireciona para login
-    sessionStorage.removeItem('redefining_password')
-    await supabase.auth.signOut()
-    setLoading(false)
-    setConcluido(true)
-    setTimeout(() => navigate('/login'), 3000)
+      if (err) {
+        // Fallback: usa Admin API com a sessão atual
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session?.user?.id) throw new Error('Sessão inválida. Solicite um novo link.')
+
+        const serviceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+
+        const res = await fetch(`${supabaseUrl}/auth/v1/admin/users/${session.user.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': serviceKey,
+            'Authorization': `Bearer ${serviceKey}`,
+          },
+          body: JSON.stringify({ password }),
+        })
+        if (!res.ok) {
+          const data = await res.json()
+          throw new Error(data.message || 'Erro ao salvar senha.')
+        }
+      }
+
+      sessionStorage.removeItem('redefining_password')
+      await supabase.auth.signOut()
+      setLoading(false)
+      setConcluido(true)
+      setTimeout(() => navigate('/login'), 3000)
+    } catch (err) {
+      setLoading(false)
+      setError(err.message || 'Erro ao salvar senha. Tente novamente.')
+    }
   }
 
   if (!pronto && !concluido) {
