@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../components/AppProvider'
-import { formatCurrency, formatDate, generateVoucherCode } from '../../lib/utils'
+import { formatCurrency, formatDate, generateVoucherCode, whatsappLink } from '../../lib/utils'
+import { downloadVoucherPNG } from '../../lib/voucherArt'
 
 export default function Operador() {
   const { user, profile, signOut } = useAuth()
@@ -25,7 +26,10 @@ export default function Operador() {
   // Geração
   const [clients, setClients] = useState([])
   const [locations, setLocations] = useState([])
-  const [genForm, setGenForm] = useState({ client_id: '', value: '', location_id: '', no_expiry: true, expires_at: '' })
+  const [genForm, setGenForm] = useState({
+    name: '', phone: '', payment_method: 'PIX', pix_account: '',
+    value: '', location_id: '', no_expiry: true, expires_at: ''
+  })
   const [genSuccess, setGenSuccess] = useState(null)
   const [genLoading, setGenLoading] = useState(false)
 
@@ -102,24 +106,49 @@ export default function Operador() {
     e.preventDefault()
     setGenLoading(true)
     try {
-      const expires_at = genForm.no_expiry ? null : genForm.expires_at || null
-      const { data, error: err } = await supabase.from('vouchers').insert({
-        client_id: genForm.client_id,
-        code: generateVoucherCode(),
-        value: parseFloat(genForm.value),
-        expires_at,
-        location_id: genForm.location_id || null,
-        is_used: false,
-      }).select('*, clients(name)').single()
+      // 1. Cria o cliente
+      const { data: newClient, error: clientErr } = await supabase
+        .from('clients')
+        .insert({
+          name: genForm.name,
+          phone: genForm.phone,
+          payment_method: genForm.payment_method,
+          pix_account: genForm.payment_method === 'PIX' ? genForm.pix_account : '',
+          purchase_date: new Date().toISOString(),
+        })
+        .select()
+        .single()
+      if (clientErr) throw clientErr
 
-      if (err) throw err
-      setGenSuccess(data)
-      setGenForm({ client_id: '', value: '', location_id: '', no_expiry: true, expires_at: '' })
+      // 2. Cria o voucher
+      const expires_at = genForm.no_expiry ? null : genForm.expires_at || null
+      const { data: newVoucher, error: vErr } = await supabase
+        .from('vouchers')
+        .insert({
+          client_id: newClient.id,
+          code: generateVoucherCode(),
+          value: parseFloat(genForm.value),
+          expires_at,
+          location_id: genForm.location_id || null,
+          is_used: false,
+        })
+        .select('*, clients(name, phone)')
+        .single()
+      if (vErr) throw vErr
+
+      setGenSuccess(newVoucher)
+      setGenForm({ name: '', phone: '', payment_method: 'PIX', pix_account: '', value: '', location_id: '', no_expiry: true, expires_at: '' })
     } catch (err) {
       alert('Erro ao gerar voucher: ' + err.message)
     } finally {
       setGenLoading(false)
     }
+  }
+
+  function sendWhatsApp(v) {
+    const estName = localStorage.getItem('establishment_name') || localStorage.getItem('sidebar_name') || 'Cathedral Vouchers'
+    const msg = `Olá, ${v.clients?.name}!\n\nSeu voucher de consumação está pronto:\n\nCódigo: *${v.code}*\nValor: ${formatCurrency(v.value)}\n\nApresente o código ao operador de caixa para usar o desconto.\n\n*${estName}*`
+    window.open(whatsappLink(v.clients?.phone, msg), '_blank')
   }
 
   if (!user) return null
@@ -237,13 +266,28 @@ export default function Operador() {
         {tab === 'gerar' && (
           <>
             {genSuccess && (
-              <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                <div style={{ fontSize: 48, marginBottom: 12 }}>🎟️</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: '#065f46', marginBottom: 6 }}>Voucher gerado!</div>
-                <div style={{ fontFamily: 'monospace', fontSize: 20, fontWeight: 800, color: '#1a1a2e', letterSpacing: 2, marginBottom: 4 }}>{genSuccess.code}</div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: '#1a1a2e', marginBottom: 4 }}>{formatCurrency(genSuccess.value)}</div>
-                <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 24 }}>Cliente: {genSuccess.clients?.name}</div>
-                <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '12px' }} onClick={() => setGenSuccess(null)}>
+              <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                <div style={{ fontSize: 44, marginBottom: 10 }}>🎟️</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#065f46', marginBottom: 8 }}>Voucher gerado!</div>
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, padding: '16px', marginBottom: 16, textAlign: 'left' }}>
+                  <div style={{ fontFamily: 'monospace', fontSize: 18, fontWeight: 800, color: '#1a1a2e', letterSpacing: 2, textAlign: 'center', marginBottom: 8 }}>{genSuccess.code}</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: '#1a1a2e', textAlign: 'center', marginBottom: 8 }}>{formatCurrency(genSuccess.value)}</div>
+                  <div style={{ fontSize: 13, color: '#374151' }}>Cliente: <strong>{genSuccess.clients?.name}</strong></div>
+                  <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>WhatsApp: {genSuccess.clients?.phone}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+                  <button className="btn btn-sm"
+                    style={{ flex: 1, justifyContent: 'center', background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0' }}
+                    onClick={() => sendWhatsApp(genSuccess)}>
+                    WhatsApp
+                  </button>
+                  <button className="btn btn-sm"
+                    style={{ flex: 1, justifyContent: 'center', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}
+                    onClick={() => downloadVoucherPNG(genSuccess, null)}>
+                    Baixar PNG
+                  </button>
+                </div>
+                <button className="btn btn-dark" style={{ width: '100%', justifyContent: 'center', padding: '12px' }} onClick={() => setGenSuccess(null)}>
                   Gerar outro voucher
                 </button>
               </div>
@@ -251,15 +295,34 @@ export default function Operador() {
 
             {!genSuccess && (
               <form onSubmit={generateVoucher}>
+                <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 14, background: '#f9fafb', padding: '8px 12px', borderRadius: 8 }}>
+                  Cada compra gera um novo cadastro de cliente.
+                </p>
                 <div className="form-group">
-                  <label>Cliente *</label>
-                  <select value={genForm.client_id} onChange={e => setGenForm({ ...genForm, client_id: e.target.value })} required>
-                    <option value="">Selecione o cliente...</option>
-                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                  <label>Nome do cliente *</label>
+                  <input placeholder="Nome completo"
+                    value={genForm.name} onChange={e => setGenForm({ ...genForm, name: e.target.value })} required />
                 </div>
                 <div className="form-group">
-                  <label>Valor (R$) *</label>
+                  <label>WhatsApp (com DDD) *</label>
+                  <input placeholder="(44) 99999-9999"
+                    value={genForm.phone} onChange={e => setGenForm({ ...genForm, phone: e.target.value })} required />
+                </div>
+                <div className="form-group">
+                  <label>Forma de pagamento *</label>
+                  <select value={genForm.payment_method} onChange={e => setGenForm({ ...genForm, payment_method: e.target.value })}>
+                    {['PIX','Dinheiro','Cartão de Crédito','Cartão de Débito','Brinde/Grátis','Outro'].map(m => <option key={m}>{m}</option>)}
+                  </select>
+                </div>
+                {genForm.payment_method === 'PIX' && (
+                  <div className="form-group">
+                    <label>Chave PIX utilizada</label>
+                    <input placeholder="CPF, telefone ou chave aleatória"
+                      value={genForm.pix_account} onChange={e => setGenForm({ ...genForm, pix_account: e.target.value })} />
+                  </div>
+                )}
+                <div className="form-group">
+                  <label>Valor do voucher (R$) *</label>
                   <input type="number" step="0.01" min="1" placeholder="50.00"
                     value={genForm.value} onChange={e => setGenForm({ ...genForm, value: e.target.value })} required />
                 </div>
