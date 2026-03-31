@@ -12,6 +12,7 @@ import ChavesPix from './pages/admin/ChavesPix'
 import Perfil from './pages/admin/Perfil'
 import DevLogin from './pages/dev/DevLogin'
 import DevPanel from './pages/dev/DevPanel'
+import Instalar from './pages/Instalar'
 import EsqueciSenha from './pages/EsqueciSenha'
 import RedefinirSenha from './pages/RedefinirSenha'
 import './styles/global.css'
@@ -36,6 +37,7 @@ export default function App() {
           </Route>
           <Route path="*" element={<Navigate to="/login" replace />} />
           <Route path="/dev/login" element={<DevLogin />} />
+          <Route path="/instalar" element={<Instalar />} />
           <Route path="/dev" element={<DevPanel />} />
         </Routes>
       </AppProvider>
