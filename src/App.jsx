@@ -18,6 +18,14 @@ import EsqueciSenha from './pages/EsqueciSenha'
 import RedefinirSenha from './pages/RedefinirSenha'
 import './styles/global.css'
 
+function RedirectWithHash() {
+  const hash = window.location.hash
+  if (hash.includes('type=invite') || hash.includes('type=recovery')) {
+    return <Navigate to={'/redefinir-senha' + hash} replace />
+  }
+  return <Navigate to="/login" replace />
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -37,7 +45,7 @@ export default function App() {
             <Route path="perfil" element={<Perfil />} />
             <Route path="validar" element={<ValidarVoucher />} />
           </Route>
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<RedirectWithHash />} />
           <Route path="/dev/login" element={<DevLogin />} />
           <Route path="/instalar" element={<Instalar />} />
           <Route path="/dev" element={<DevPanel />} />

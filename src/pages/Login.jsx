@@ -15,6 +15,16 @@ export default function Login() {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
 
+  // Detecta token de convite ou recuperação no hash da URL
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash.includes('type=invite') || hash.includes('type=recovery')) {
+      // Preserva o hash e redireciona para a página de redefinição de senha
+      navigate('/redefinir-senha' + hash, { replace: true })
+      return
+    }
+  }, [])
+
   // Se já está logado, redireciona para o lugar certo
   useEffect(() => {
     if (user && profile) {
