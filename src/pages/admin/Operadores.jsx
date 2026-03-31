@@ -85,8 +85,8 @@ export default function Operadores() {
         const serviceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 
-        // Usa invite — garante hash correto e envia email de boas-vindas
-        const res = await fetch(`${supabaseUrl}/auth/v1/invite`, {
+        // Passo 1: Cria o usuário via Admin API (sem enviar email de convite)
+        const resCreate = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -95,16 +95,15 @@ export default function Operadores() {
           },
           body: JSON.stringify({
             email: form.email,
-            data: { name: form.name },
-            options: {
-              redirect_to: `${window.location.origin}/redefinir-senha`,
-            },
+            email_confirm: true,
+            password: Math.random().toString(36).slice(-12) + 'Aa1!', // senha temporária aleatória
           }),
         })
 
-        const newUser = await res.json()
-        if (!res.ok) throw new Error(newUser.message || 'Erro ao enviar convite.')
+        const newUser = await resCreate.json()
+        if (!resCreate.ok) throw new Error(newUser.message || 'Erro ao criar usuário.')
 
+        // Passo 2: Insere na tabela operators
         const { error: opError } = await supabase.from('operators').insert({
           auth_user_id: newUser.id,
           name: form.name,
@@ -113,6 +112,19 @@ export default function Operadores() {
           location_id: form.location_id || null,
         })
         if (opError) throw opError
+
+        // Passo 3: Envia email de recuperação de senha (link que já funciona!)
+        await fetch(`${supabaseUrl}/auth/v1/recover`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': serviceKey,
+            'Authorization': `Bearer ${serviceKey}`,
+          },
+          body: JSON.stringify({
+            email: form.email,
+          }),
+        })
 
         // Envia segundo email com link de instalação do app
         const estName = localStorage.getItem('establishment_name') || localStorage.getItem('sidebar_name') || 'Cathedral Vouchers'
