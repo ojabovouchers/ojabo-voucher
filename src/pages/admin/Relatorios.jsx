@@ -132,7 +132,7 @@ export default function Relatorios() {
       <div style={{ padding: '24px 28px' }}>
         {/* Filtros */}
         <div className="card" style={{ marginBottom: 20 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, overflow: 'hidden' }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label>Status</label>
               <select value={filter.status} onChange={e => setFilter({ ...filter, status: e.target.value })}>
@@ -149,13 +149,13 @@ export default function Relatorios() {
                 {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
               </select>
             </div>
-            <div className="form-group" style={{ marginBottom: 0 }}>
+            <div className="form-group" style={{ marginBottom: 0, minWidth: 0 }}>
               <label>De</label>
-              <input type="date" value={filter.date_from} onChange={e => setFilter({ ...filter, date_from: e.target.value })} />
+              <input type="date" value={filter.date_from} onChange={e => setFilter({ ...filter, date_from: e.target.value })} style={{ width: '100%', boxSizing: 'border-box' }} />
             </div>
-            <div className="form-group" style={{ marginBottom: 0 }}>
+            <div className="form-group" style={{ marginBottom: 0, minWidth: 0 }}>
               <label>Até</label>
-              <input type="date" value={filter.date_to} onChange={e => setFilter({ ...filter, date_to: e.target.value })} />
+              <input type="date" value={filter.date_to} onChange={e => setFilter({ ...filter, date_to: e.target.value })} style={{ width: '100%', boxSizing: 'border-box' }} />
             </div>
           </div>
         </div>
