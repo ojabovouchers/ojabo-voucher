@@ -91,14 +91,18 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
           </div>
 
           {/* Nav */}
-          <nav style={{ flex: 1, padding: '8px 0' }}>
+          <nav style={{ flex: 1, padding: '8px 0', display: 'flex', flexDirection: 'column' }}>
             {links.map(l => (
               <NavLink key={l.to} to={l.to} end={l.end}
                 onClick={handleNavClick}
                 className={({ isActive }) => isActive ? 'active' : ''}
-                style={{ padding: '12px 20px', color: sidebarMenuColor, fontSize: 15 }}>
-                <span style={{ fontSize: 17, flexShrink: 0 }}>{l.icon}</span>
-                {l.label}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '14px 20px', color: sidebarMenuColor,
+                  fontSize: 15, width: '100%', textDecoration: 'none',
+                }}>
+                <span style={{ fontSize: 17, flexShrink: 0, width: 20, textAlign: 'center' }}>{l.icon}</span>
+                <span>{l.label}</span>
               </NavLink>
             ))}
           </nav>
