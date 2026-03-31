@@ -64,7 +64,7 @@ export default function Operadores() {
       supabase.from('operators').select('*, locations(name)').order('created_at', { ascending: false }),
       supabase.from('locations').select('*').order('name'),
     ])
-    setOperators(opRes.data || [])
+    setOperators((opRes.data || []).filter(op => !op.is_master))
     setLocations(locRes.data || [])
     setLoading(false)
   }
