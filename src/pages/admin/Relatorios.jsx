@@ -132,7 +132,7 @@ export default function Relatorios() {
       <div style={{ padding: '24px 28px' }}>
         {/* Filtros */}
         <div className="card" style={{ marginBottom: 20 }}>
-          <div className="form-row" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label>Status</label>
               <select value={filter.status} onChange={e => setFilter({ ...filter, status: e.target.value })}>
