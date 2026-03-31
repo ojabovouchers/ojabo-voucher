@@ -13,6 +13,7 @@ import Perfil from './pages/admin/Perfil'
 import DevLogin from './pages/dev/DevLogin'
 import DevPanel from './pages/dev/DevPanel'
 import Instalar from './pages/Instalar'
+import ValidarVoucher from './pages/admin/ValidarVoucher'
 import EsqueciSenha from './pages/EsqueciSenha'
 import RedefinirSenha from './pages/RedefinirSenha'
 import './styles/global.css'
@@ -34,6 +35,7 @@ export default function App() {
             <Route path="configuracoes" element={<Configuracoes />} />
             <Route path="chaves-pix" element={<ChavesPix />} />
             <Route path="perfil" element={<Perfil />} />
+            <Route path="validar" element={<ValidarVoucher />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" replace />} />
           <Route path="/dev/login" element={<DevLogin />} />

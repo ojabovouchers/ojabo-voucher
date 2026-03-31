@@ -9,6 +9,7 @@ const links = [
   { to: '/admin/chaves-pix', label: 'Chaves PIX', icon: '₿' },
   { to: '/admin/relatorios', label: 'Relatórios', icon: '◧' },
   { to: '/admin/configuracoes', label: 'Configurações', icon: '◎' },
+  { to: '/admin/validar', label: 'Validar Voucher', icon: '✓' },
 ]
 
 export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }) {
