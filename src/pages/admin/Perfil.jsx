@@ -12,6 +12,32 @@ function Section({ title, children }) {
   )
 }
 
+// Declarado FORA do componente principal para evitar perda de foco
+function PasswordField({ label, field, value, onChange, showPass, onToggleShow }) {
+  return (
+    <div className="form-group">
+      <label>{label}</label>
+      <div style={{ position: 'relative' }}>
+        <input
+          type={showPass ? 'text' : 'password'}
+          value={value}
+          onChange={onChange}
+          placeholder="Mínimo 6 caracteres"
+          style={{ paddingRight: 42 }}
+        />
+        <button type="button"
+          onClick={onToggleShow}
+          style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', alignItems: 'center' }}>
+          {showPass
+            ? <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M3 12s3-7 9-7 9 7 9 7-3 7-9 7-9-7-9-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            : <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-6 0-9-8-9-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c6 0 9 8 9 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          }
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function Perfil() {
   const { user, profile } = useAuth()
   const branding = useBranding()
@@ -19,8 +45,8 @@ export default function Perfil() {
   const [saving, setSaving] = useState(false)
 
   const [nameForm, setNameForm] = useState({ name: '' })
-  const [passwordForm, setPasswordForm] = useState({ current: '', new: '', confirm: '' })
-  const [showPass, setShowPass] = useState({ current: false, new: false, confirm: false })
+  const [passwordForm, setPasswordForm] = useState({ new: '', confirm: '' })
+  const [showPass, setShowPass] = useState({ new: false, confirm: false })
 
   useEffect(() => {
     if (profile) setNameForm({ name: profile.name || '' })
@@ -58,37 +84,12 @@ export default function Perfil() {
       const { error } = await supabase.auth.updateUser({ password: passwordForm.new })
       if (error) throw error
       toast('Senha alterada com sucesso!', 'success')
-      setPasswordForm({ current: '', new: '', confirm: '' })
+      setPasswordForm({ new: '', confirm: '' })
     } catch {
       toast('Erro ao alterar senha.', 'error')
     } finally {
       setSaving(false)
     }
-  }
-
-  function PasswordField({ label, field }) {
-    return (
-      <div className="form-group">
-        <label>{label}</label>
-        <div style={{ position: 'relative' }}>
-          <input
-            type={showPass[field] ? 'text' : 'password'}
-            value={passwordForm[field]}
-            onChange={e => setPasswordForm({ ...passwordForm, [field]: e.target.value })}
-            placeholder="Mínimo 6 caracteres"
-            style={{ paddingRight: 42 }}
-          />
-          <button type="button"
-            onClick={() => setShowPass(s => ({ ...s, [field]: !s[field] }))}
-            style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', alignItems: 'center' }}>
-            {showPass[field]
-              ? <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M3 12s3-7 9-7 9 7 9 7-3 7-9 7-9-7-9-7z"/><circle cx="12" cy="12" r="3"/></svg>
-              : <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-6 0-9-8-9-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c6 0 9 8 9 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-            }
-          </button>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -134,8 +135,22 @@ export default function Perfil() {
         {/* Senha */}
         <Section title="Alterar senha">
           <form onSubmit={savePassword}>
-            <PasswordField label="Nova senha *" field="new" />
-            <PasswordField label="Confirmar nova senha *" field="confirm" />
+            <PasswordField
+              label="Nova senha *"
+              field="new"
+              value={passwordForm.new}
+              onChange={e => setPasswordForm(f => ({ ...f, new: e.target.value }))}
+              showPass={showPass.new}
+              onToggleShow={() => setShowPass(s => ({ ...s, new: !s.new }))}
+            />
+            <PasswordField
+              label="Confirmar nova senha *"
+              field="confirm"
+              value={passwordForm.confirm}
+              onChange={e => setPasswordForm(f => ({ ...f, confirm: e.target.value }))}
+              showPass={showPass.confirm}
+              onToggleShow={() => setShowPass(s => ({ ...s, confirm: !s.confirm }))}
+            />
             {passwordForm.confirm && passwordForm.new !== passwordForm.confirm && (
               <small style={{ color: '#dc2626', fontSize: 12, display: 'block', marginTop: -10, marginBottom: 12 }}>
                 As senhas não coincidem.

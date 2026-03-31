@@ -15,27 +15,27 @@ export default function RedefinirSenha() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    // O Supabase injeta a sessão automaticamente via hash na URL
-    // quando o usuário clica no link do email
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
+    // Escuta apenas PASSWORD_RECOVERY e USER_UPDATED (convite)
+    // Não aceita SIGNED_IN para evitar login automático
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
         setSessaoValida(true)
-      } else {
-        // Aguarda um momento para o Supabase processar o hash da URL
-        setTimeout(() => {
-          supabase.auth.getSession().then(({ data: { session: s } }) => {
-            setSessaoValida(!!s)
-          })
-        }, 1000)
+      }
+      // Para convites: o evento é SIGNED_IN mas a URL contém #type=invite
+      if (event === 'SIGNED_IN' && window.location.hash.includes('type=invite')) {
+        setSessaoValida(true)
       }
     })
 
-    // Escuta recuperação de senha E convite de novo operador
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
-        setSessaoValida(true)
-      }
-    })
+    // Verifica se já há hash de convite ou recuperação na URL ao carregar
+    const hash = window.location.hash
+    if (hash.includes('type=recovery') || hash.includes('type=invite')) {
+      setTimeout(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session) setSessaoValida(true)
+        })
+      }, 500)
+    }
 
     return () => subscription.unsubscribe()
   }, [])
