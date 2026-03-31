@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
 import { useAuth } from './AppProvider'
+import { useBranding } from '../lib/useBranding'
 
 const links = [
   { to: '/admin', label: 'Dashboard', icon: '⊞', end: true },
@@ -14,25 +14,13 @@ const links = [
 export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }) {
   const { signOut } = useAuth()
   const navigate = useNavigate()
-  const [sidebarName, setSidebarName] = useState(localStorage.getItem('sidebar_name') || '')
-  const [sidebarColor, setSidebarColor] = useState(localStorage.getItem('sidebar_color') || '#1a1a2e')
-  const [sidebarFont, setSidebarFont] = useState(localStorage.getItem('sidebar_font') || "'Segoe UI', Arial, sans-serif")
-  const [sidebarNameColor, setSidebarNameColor] = useState(localStorage.getItem('sidebar_name_color') || '#e2b04a')
-  const [sidebarMenuColor, setSidebarMenuColor] = useState(localStorage.getItem('sidebar_menu_color') || 'rgba(255,255,255,0.65)')
+  const branding = useBranding()
 
-  function loadFromStorage() {
-    setSidebarName(localStorage.getItem('sidebar_name') || '')
-    setSidebarColor(localStorage.getItem('sidebar_color') || '#1a1a2e')
-    setSidebarFont(localStorage.getItem('sidebar_font') || "'Segoe UI', Arial, sans-serif")
-    setSidebarNameColor(localStorage.getItem('sidebar_name_color') || '#e2b04a')
-    setSidebarMenuColor(localStorage.getItem('sidebar_menu_color') || 'rgba(255,255,255,0.65)')
-  }
-
-  useEffect(() => {
-    loadFromStorage()
-    window.addEventListener('sidebar-settings-updated', loadFromStorage)
-    return () => window.removeEventListener('sidebar-settings-updated', loadFromStorage)
-  }, [])
+  const sidebarName = branding.name || 'CATHEDRAL'
+  const sidebarColor = branding.color || '#1a1a2e'
+  const sidebarNameColor = branding.nameColor || '#e2b04a'
+  const sidebarMenuColor = branding.menuColor || 'rgba(255,255,255,0.65)'
+  const sidebarFont = branding.font || "'Segoe UI', Arial, sans-serif"
 
   async function handleLogout() {
     await signOut()
