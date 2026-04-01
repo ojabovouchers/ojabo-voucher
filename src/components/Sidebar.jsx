@@ -116,9 +116,6 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
       overflow: 'hidden',
       background: sidebarColor,
       fontFamily: sidebarFont,
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100vh',
     }}>
       <div className="sidebar-logo" style={{
         display: 'flex', alignItems: 'center',
@@ -143,7 +140,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
         </button>
       </div>
 
-      <nav style={{ padding: '12px 0', flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+      <nav style={{ padding: '12px 0', flex: 1 }}>
         {links.map(l => (
           <NavLink key={l.to} to={l.to} end={l.end}
             title={collapsed ? l.label : ''}
