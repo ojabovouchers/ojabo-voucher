@@ -116,6 +116,9 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
       overflow: 'hidden',
       background: sidebarColor,
       fontFamily: sidebarFont,
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100vh',
     }}>
       <div className="sidebar-logo" style={{
         display: 'flex', alignItems: 'center',
@@ -140,7 +143,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
         </button>
       </div>
 
-      <nav style={{ padding: '12px 0', flex: 1 }}>
+      <nav style={{ padding: '12px 0', flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
         {links.map(l => (
           <NavLink key={l.to} to={l.to} end={l.end}
             title={collapsed ? l.label : ''}
@@ -152,7 +155,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
         ))}
       </nav>
 
-      <div style={{ padding: collapsed ? '12px 0' : '16px 20px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ padding: collapsed ? '12px 0' : '16px 20px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
         {collapsed ? (
           <button onClick={handleLogout} title="Sair"
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center' }}>
