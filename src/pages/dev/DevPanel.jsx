@@ -43,6 +43,13 @@ export default function DevPanel() {
   const [appTitle, setAppTitle] = useState('Cathedral Vouchers')
   const [voucherPrefix, setVoucherPrefix] = useState('CATH')
 
+  // Ícones PWA
+  const [iconFile, setIconFile] = useState(null)
+  const [iconPreview, setIconPreview] = useState(null)
+  const [iconShape, setIconShape] = useState('circle')
+  const [iconSaving, setIconSaving] = useState(false)
+  const [iconSuccess, setIconSuccess] = useState(false)
+
   // Admins
   const [admins, setAdmins] = useState([])
   const [masterAdmin, setMasterAdmin] = useState(null)
@@ -87,6 +94,94 @@ export default function DevPanel() {
     if (map.app_title) { setAppTitle(map.app_title); document.title = map.app_title }
     if (map.voucher_prefix) setVoucherPrefix(map.voucher_prefix)
     setOperatorCanGenerate(map.operator_can_generate === 'true')
+  }
+
+  function handleIconUpload(e) {
+    const file = e.target.files[0]
+    if (!file || !file.type.startsWith('image/')) return
+    setIconFile(file)
+    setIconSuccess(false)
+    const reader = new FileReader()
+    reader.onload = ev => setIconPreview(ev.target.result)
+    reader.readAsDataURL(file)
+  }
+
+  async function processAndSaveIcons() {
+    if (!iconFile) return
+    setIconSaving(true)
+    setIconSuccess(false)
+    try {
+      const client = await getAdminClient()
+
+      async function generateIcon(src, size, shape) {
+        return new Promise((resolve) => {
+          const img = new Image()
+          img.onload = () => {
+            const canvas = document.createElement('canvas')
+            canvas.width = size
+            canvas.height = size
+            const ctx = canvas.getContext('2d')
+
+            if (shape === 'circle') {
+              ctx.beginPath()
+              ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2)
+              ctx.closePath()
+              ctx.clip()
+            } else {
+              // Quadrado com bordas arredondadas (20% do tamanho)
+              const r = size * 0.2
+              ctx.beginPath()
+              ctx.moveTo(r, 0)
+              ctx.lineTo(size - r, 0)
+              ctx.quadraticCurveTo(size, 0, size, r)
+              ctx.lineTo(size, size - r)
+              ctx.quadraticCurveTo(size, size, size - r, size)
+              ctx.lineTo(r, size)
+              ctx.quadraticCurveTo(0, size, 0, size - r)
+              ctx.lineTo(0, r)
+              ctx.quadraticCurveTo(0, 0, r, 0)
+              ctx.closePath()
+              ctx.clip()
+            }
+
+            // Desenha a imagem dentro da forma
+            const scale = Math.max(size / img.width, size / img.height)
+            const w = img.width * scale
+            const h = img.height * scale
+            const x = (size - w) / 2
+            const y = (size - h) / 2
+            ctx.drawImage(img, x, y, w, h)
+
+            canvas.toBlob(blob => resolve(blob), 'image/png')
+          }
+          img.src = src
+        })
+      }
+
+      const src = iconPreview
+      const [blob192, blob512, blob32] = await Promise.all([
+        generateIcon(src, 192, iconShape),
+        generateIcon(src, 512, iconShape),
+        generateIcon(src, 32, iconShape),
+      ])
+
+      // Salva no Supabase Storage
+      await Promise.all([
+        client.storage.from('branding').upload('icon-192.png', blob192, { upsert: true, contentType: 'image/png' }),
+        client.storage.from('branding').upload('icon-512.png', blob512, { upsert: true, contentType: 'image/png' }),
+        client.storage.from('branding').upload('favicon.png', blob32, { upsert: true, contentType: 'image/png' }),
+      ])
+
+      // Salva a forma escolhida nas settings
+      await client.from('settings').upsert({ key: 'pwa_icon_shape', value: iconShape }, { onConflict: 'key' })
+
+      setIconSuccess(true)
+      setIconFile(null)
+    } catch (err) {
+      alert('Erro ao gerar ícones: ' + err.message)
+    } finally {
+      setIconSaving(false)
+    }
   }
 
   async function loadAdmins() {
@@ -576,6 +671,85 @@ export default function DevPanel() {
               </div>
             </form>
           )}
+        </Section>
+
+        {/* ÍCONES PWA */}
+        <Section title="Ícones do App (PWA)">
+          <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>
+            Faça upload da logo do cliente para gerar automaticamente os ícones do app instalável.
+            Recomendado: imagem quadrada com pelo menos 512x512px.
+          </p>
+
+          {/* Escolha de formato */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 13, fontWeight: 500, display: 'block', marginBottom: 8 }}>Formato do ícone</label>
+            <div style={{ display: 'flex', gap: 12 }}>
+              {[
+                { value: 'circle', label: '⬤ Círculo', desc: 'Borda circular (padrão iOS/Android)' },
+                { value: 'square', label: '▪ Quadrado', desc: 'Cantos arredondados (ideal para logos largas)' },
+              ].map(opt => (
+                <div key={opt.value} onClick={() => setIconShape(opt.value)}
+                  style={{
+                    flex: 1, padding: '12px', borderRadius: 10, cursor: 'pointer',
+                    border: `2px solid ${iconShape === opt.value ? '#e2b04a' : '#e5e7eb'}`,
+                    background: iconShape === opt.value ? '#fffbeb' : '#fff',
+                  }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>{opt.label}</div>
+                  <div style={{ fontSize: 12, color: '#6b7280' }}>{opt.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Upload */}
+          <div className="form-group" style={{ marginBottom: 16 }}>
+            <label>Imagem da logo</label>
+            <input type="file" accept="image/*" onChange={handleIconUpload} />
+          </div>
+
+          {/* Preview */}
+          {iconPreview && (
+            <div style={{ display: 'flex', gap: 20, alignItems: 'flex-end', marginBottom: 16, background: '#f9fafb', padding: 16, borderRadius: 10, border: '1px solid #e5e7eb' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 6 }}>192x192</div>
+                <img src={iconPreview} alt="preview"
+                  style={{
+                    width: 60, height: 60, objectFit: 'cover',
+                    borderRadius: iconShape === 'circle' ? '50%' : '20%',
+                    border: '1px solid #e5e7eb',
+                  }} />
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 6 }}>512x512</div>
+                <img src={iconPreview} alt="preview"
+                  style={{
+                    width: 96, height: 96, objectFit: 'cover',
+                    borderRadius: iconShape === 'circle' ? '50%' : '20%',
+                    border: '1px solid #e5e7eb',
+                  }} />
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 6 }}>favicon</div>
+                <img src={iconPreview} alt="preview"
+                  style={{
+                    width: 32, height: 32, objectFit: 'cover',
+                    borderRadius: iconShape === 'circle' ? '50%' : '20%',
+                    border: '1px solid #e5e7eb',
+                  }} />
+              </div>
+            </div>
+          )}
+
+          {iconSuccess && (
+            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: '#065f46' }}>
+              ✅ Ícones gerados e salvos! Os novos ícones aparecem quando o usuário reinstalar o app.
+            </div>
+          )}
+
+          <button className="btn btn-primary" onClick={processAndSaveIcons}
+            disabled={!iconFile || iconSaving}>
+            {iconSaving ? 'Gerando ícones...' : 'Gerar e salvar ícones'}
+          </button>
         </Section>
 
         {/* RELATÓRIOS */}
