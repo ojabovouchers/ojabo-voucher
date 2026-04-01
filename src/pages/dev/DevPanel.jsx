@@ -122,7 +122,9 @@ export default function DevPanel() {
       ])
       document.title = appTitle
       window.dispatchEvent(new Event('sidebar-settings-updated'))
-      alert('Configurações salvas!')
+      // Limpa localStorage para forçar rebusca do Supabase na próxima vez
+      ;['sidebar_name','sidebar_color','sidebar_font','sidebar_name_color','sidebar_menu_color','app_title'].forEach(k => localStorage.removeItem(k))
+      alert('Configurações salvas! Recarregue o painel admin para ver as mudanças.')
     } finally {
       setSaving(false)
     }

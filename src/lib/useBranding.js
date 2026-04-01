@@ -1,16 +1,34 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 
-function getFromStorage() {
+const KEYS = ['sidebar_name', 'sidebar_color', 'sidebar_name_color', 'sidebar_menu_color', 'sidebar_font', 'app_title', 'voucher_prefix', 'establishment_name']
+
+const DEFAULTS = {
+  name: 'CATHEDRAL',
+  color: '#1a1a2e',
+  nameColor: '#e2b04a',
+  menuColor: 'rgba(255,255,255,0.65)',
+  font: "'Segoe UI', Arial, sans-serif",
+  appTitle: 'Cathedral Vouchers',
+  loginBg: '#1a1a2e',
+}
+
+function mapToBranding(map) {
   return {
-    name: localStorage.getItem('sidebar_name') || '',
-    color: localStorage.getItem('sidebar_color') || '#1a1a2e',
-    nameColor: localStorage.getItem('sidebar_name_color') || '#e2b04a',
-    menuColor: localStorage.getItem('sidebar_menu_color') || 'rgba(255,255,255,0.65)',
-    font: localStorage.getItem('sidebar_font') || "'Segoe UI', Arial, sans-serif",
-    appTitle: localStorage.getItem('app_title') || 'Cathedral Vouchers',
-    loginBg: localStorage.getItem('sidebar_color') || '#1a1a2e',
+    name: map.sidebar_name || DEFAULTS.name,
+    color: map.sidebar_color || DEFAULTS.color,
+    nameColor: map.sidebar_name_color || DEFAULTS.nameColor,
+    menuColor: map.sidebar_menu_color || DEFAULTS.menuColor,
+    font: map.sidebar_font || DEFAULTS.font,
+    appTitle: map.app_title || DEFAULTS.appTitle,
+    loginBg: map.sidebar_color || DEFAULTS.loginBg,
   }
+}
+
+function getFromStorage() {
+  const map = {}
+  KEYS.forEach(k => { map[k] = localStorage.getItem(k) || '' })
+  return mapToBranding(map)
 }
 
 export function useBranding() {
@@ -18,20 +36,20 @@ export function useBranding() {
 
   async function loadFromSupabase() {
     try {
-      const { data } = await supabase.from('settings').select('key, value')
-      if (!data) return
+      const { data } = await supabase.from('settings').select('key, value').in('key', KEYS)
+      if (!data?.length) return
+
       const map = {}
-      data.forEach(s => { map[s.key] = s.value })
+      data.forEach(s => {
+        map[s.key] = s.value
+        if (s.value) localStorage.setItem(s.key, s.value)
+      })
 
-      const keys = ['sidebar_name', 'sidebar_color', 'sidebar_name_color', 'sidebar_menu_color', 'sidebar_font', 'app_title', 'voucher_prefix', 'establishment_name']
-      keys.forEach(k => { if (map[k]) localStorage.setItem(k, map[k]) })
-
-      const updated = getFromStorage()
+      const updated = mapToBranding(map)
       setBranding(updated)
-      // Atualiza o título imediatamente após buscar do banco
       if (updated.appTitle) document.title = updated.appTitle
     } catch {
-      // Falha silenciosa — usa localStorage como fallback
+      // Falha silenciosa — mantém o que está na tela
     }
   }
 
@@ -42,11 +60,15 @@ export function useBranding() {
   }
 
   useEffect(() => {
-    // Aplica imediatamente do localStorage (sem esperar o Supabase)
+    // Aplica localStorage imediatamente (sem piscar)
     const initial = getFromStorage()
+    setBranding(initial)
     if (initial.appTitle) document.title = initial.appTitle
-    // Depois busca do banco para garantir que está atualizado
+
+    // Sempre busca do Supabase para garantir dados atualizados
     loadFromSupabase()
+
+    // Escuta atualizações feitas na mesma aba (painel dev)
     window.addEventListener('sidebar-settings-updated', loadFromLocalStorage)
     return () => window.removeEventListener('sidebar-settings-updated', loadFromLocalStorage)
   }, [])
