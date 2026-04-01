@@ -1,37 +1,32 @@
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL
-const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY
-
 export default async function handler(req, res) {
-  let icon192 = '/icon-192.png'
-  let icon512 = '/icon-512.png'
+  const SUPABASE_URL = 'https://useudmzyutaezwjdmdad.supabase.co'
+  const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || ''
+
+  let icon192 = `${SUPABASE_URL}/storage/v1/object/public/branding/icon-192.png`
+  let icon512 = `${SUPABASE_URL}/storage/v1/object/public/branding/icon-512.png`
   let appName = 'Cathedral Vouchers'
-  let appShortName = 'Vouchers'
+  let appShortName = 'Cathedral'
 
   try {
-    // Busca configurações do Supabase
-    const settingsRes = await fetch(`${SUPABASE_URL}/rest/v1/settings?key=in.(app_title,sidebar_name)&select=key,value`, {
-      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
-    })
-    const settings = await settingsRes.json()
-    const map = {}
-    settings.forEach(s => { map[s.key] = s.value })
-    if (map.app_title) appName = map.app_title
-    if (map.sidebar_name) appShortName = map.sidebar_name
-
-    // Verifica se existem ícones no Storage
-    const iconRes = await fetch(`${SUPABASE_URL}/storage/v1/object/public/branding/icon-192.png`, { method: 'HEAD' })
-    if (iconRes.ok) {
-      icon192 = `${SUPABASE_URL}/storage/v1/object/public/branding/icon-192.png`
-      icon512 = `${SUPABASE_URL}/storage/v1/object/public/branding/icon-512.png`
+    const settingsRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/settings?key=in.(app_title,sidebar_name)&select=key,value`,
+      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+    )
+    if (settingsRes.ok) {
+      const settings = await settingsRes.json()
+      const map = {}
+      settings.forEach(s => { map[s.key] = s.value })
+      if (map.app_title) appName = map.app_title
+      if (map.sidebar_name) appShortName = map.sidebar_name || appName
     }
   } catch {
-    // Usa fallback estático
+    // Usa defaults
   }
 
   const manifest = {
     name: appName,
-    short_name: appShortName || appName,
-    description: `Sistema de vouchers — ${appShortName || appName}`,
+    short_name: appShortName,
+    description: `Sistema de vouchers — ${appShortName}`,
     start_url: '/',
     display: 'standalone',
     background_color: '#000000',
@@ -47,6 +42,13 @@ export default async function handler(req, res) {
   }
 
   res.setHeader('Content-Type', 'application/manifest+json')
-  res.setHeader('Cache-Control', 'public, max-age=3600')
+  res.setHeader('Cache-Control', 'no-cache')
   res.status(200).json(manifest)
 }
+```
+
+A diferença principal é que agora a URL do Supabase está **fixa dentro do código** — não depende de variável de ambiente. Depois:
+```
+git add .
+git commit -m "manifest url storage fixa"
+git push origin main

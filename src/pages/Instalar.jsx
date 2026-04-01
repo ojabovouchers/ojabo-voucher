@@ -70,7 +70,7 @@ export default function Instalar() {
     }
   }
 
-  const iconSrc = '/icon-192.png'
+  const iconSrc = 'https://useudmzyutaezwjdmdad.supabase.co/storage/v1/object/public/branding/icon-192.png'
 
   if (installed) {
     return (
