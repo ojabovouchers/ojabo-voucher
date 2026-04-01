@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useBranding } from '../lib/useBranding'
 
 function detectDevice() {
@@ -43,6 +44,7 @@ function IconBox({ children }) {
 
 export default function Instalar() {
   const branding = useBranding()
+  const navigate = useNavigate()
   const [device, setDevice] = useState(null)
   const [installed, setInstalled] = useState(false)
   const [deferredPrompt, setDeferredPrompt] = useState(null)
@@ -79,9 +81,19 @@ export default function Instalar() {
             <div style={{ fontSize: 22, fontWeight: 800, color: '#1a1a2e', marginBottom: 8 }}>
               Instalado com sucesso!
             </div>
-            <div style={{ color: '#6b7280', fontSize: 15 }}>
+            <div style={{ color: '#6b7280', fontSize: 15, marginBottom: 28 }}>
               Procure o ícone na sua tela inicial e abra o app.
             </div>
+            <button
+              onClick={() => navigate('/login')}
+              style={{
+                width: '100%', padding: '14px', borderRadius: 10,
+                background: '#e2b04a', color: '#1a1a2e',
+                border: 'none', fontWeight: 800, fontSize: 16,
+                cursor: 'pointer',
+              }}>
+              Efetuar Login
+            </button>
           </div>
         </div>
       </div>
