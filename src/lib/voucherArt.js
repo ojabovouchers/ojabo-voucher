@@ -1,5 +1,6 @@
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
+import { supabase } from './supabase'
 import { formatCurrency, formatDate } from './utils'
 
 export const TEMPLATES = [
@@ -7,55 +8,61 @@ export const TEMPLATES = [
     id: 'classico',
     name: 'Clássico Escuro',
     bg: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-    textColor: '#ffffff',
-    mutedColor: '#aaaaaa',
-    accentColor: '#e2b04a',
-    codeBackground: 'rgba(255,255,255,0.1)',
-    codeBorder: 'rgba(255,255,255,0.2)',
-    circle1: 'rgba(226,176,74,0.07)',
-    circle2: 'rgba(226,176,74,0.04)',
+    textColor: '#ffffff', mutedColor: '#aaaaaa', accentColor: '#e2b04a',
+    codeBackground: 'rgba(255,255,255,0.1)', codeBorder: 'rgba(255,255,255,0.2)',
+    circle1: 'rgba(226,176,74,0.07)', circle2: 'rgba(226,176,74,0.04)',
     logoFilter: 'brightness(0) invert(1)',
   },
   {
     id: 'dourado',
     name: 'Dourado Elegante',
     bg: 'linear-gradient(135deg, #2c1810 0%, #4a2c1a 50%, #6b3f22 100%)',
-    textColor: '#fff8ee',
-    mutedColor: '#d4a876',
-    accentColor: '#f0c060',
-    codeBackground: 'rgba(240,192,96,0.15)',
-    codeBorder: 'rgba(240,192,96,0.4)',
-    circle1: 'rgba(240,192,96,0.08)',
-    circle2: 'rgba(240,192,96,0.04)',
+    textColor: '#fff8ee', mutedColor: '#d4a876', accentColor: '#f0c060',
+    codeBackground: 'rgba(240,192,96,0.15)', codeBorder: 'rgba(240,192,96,0.4)',
+    circle1: 'rgba(240,192,96,0.08)', circle2: 'rgba(240,192,96,0.04)',
     logoFilter: 'brightness(0) invert(1) sepia(1) saturate(2) hue-rotate(10deg)',
   },
   {
     id: 'moderno',
     name: 'Moderno Claro',
     bg: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 50%, #dee2e6 100%)',
-    textColor: '#1a1a2e',
-    mutedColor: '#6b7280',
-    accentColor: '#0f3460',
-    codeBackground: 'rgba(15,52,96,0.08)',
-    codeBorder: 'rgba(15,52,96,0.2)',
-    circle1: 'rgba(15,52,96,0.04)',
-    circle2: 'rgba(15,52,96,0.03)',
+    textColor: '#1a1a2e', mutedColor: '#6b7280', accentColor: '#0f3460',
+    codeBackground: 'rgba(15,52,96,0.08)', codeBorder: 'rgba(15,52,96,0.2)',
+    circle1: 'rgba(15,52,96,0.04)', circle2: 'rgba(15,52,96,0.03)',
     logoFilter: 'none',
   },
   {
     id: 'premium',
     name: 'Premium Preto',
     bg: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0d0d0d 100%)',
-    textColor: '#ffffff',
-    mutedColor: '#888888',
-    accentColor: '#c9a84c',
-    codeBackground: 'rgba(201,168,76,0.1)',
-    codeBorder: 'rgba(201,168,76,0.3)',
-    circle1: 'rgba(201,168,76,0.06)',
-    circle2: 'rgba(201,168,76,0.03)',
+    textColor: '#ffffff', mutedColor: '#888888', accentColor: '#c9a84c',
+    codeBackground: 'rgba(201,168,76,0.1)', codeBorder: 'rgba(201,168,76,0.3)',
+    circle1: 'rgba(201,168,76,0.06)', circle2: 'rgba(201,168,76,0.03)',
     logoFilter: 'brightness(0) invert(1)',
   },
 ]
+
+// Busca configurações do Supabase e atualiza localStorage como cache
+export async function loadVoucherSettings() {
+  try {
+    const keys = [
+      'voucher_template', 'voucher_footer_text', 'voucher_custom_bg',
+      'voucher_color_text', 'voucher_color_accent', 'voucher_color_muted',
+    ]
+    const { data } = await supabase.from('settings').select('key, value').in('key', keys)
+    if (data) {
+      data.forEach(({ key, value }) => {
+        if (value) localStorage.setItem(key, value)
+      })
+    }
+
+    // Logo do Storage
+    const { data: logoData } = await supabase.storage.from('branding').createSignedUrl('logo', 3600)
+    if (logoData?.signedUrl) localStorage.setItem('cathedral_logo', logoData.signedUrl)
+  } catch {
+    // Falha silenciosa — usa cache do localStorage
+  }
+}
 
 export function getVoucherSettings() {
   const savedId = localStorage.getItem('voucher_template') || 'classico'
@@ -66,20 +73,15 @@ export function getVoucherSettings() {
     template = {
       id: 'custom',
       bg: `url(${customBg}) center/cover no-repeat`,
-      textColor: '#ffffff',
-      mutedColor: '#dddddd',
-      accentColor: '#e2b04a',
-      codeBackground: 'rgba(0,0,0,0.4)',
-      codeBorder: 'rgba(255,255,255,0.3)',
-      circle1: 'transparent',
-      circle2: 'transparent',
+      textColor: '#ffffff', mutedColor: '#dddddd', accentColor: '#e2b04a',
+      codeBackground: 'rgba(0,0,0,0.4)', codeBorder: 'rgba(255,255,255,0.3)',
+      circle1: 'transparent', circle2: 'transparent',
       logoFilter: 'brightness(0) invert(1)',
     }
   } else {
     template = TEMPLATES.find(t => t.id === savedId) || TEMPLATES[0]
   }
 
-  // Sobrescreve cores se o admin personalizou
   const customTextColor = localStorage.getItem('voucher_color_text')
   const customAccentColor = localStorage.getItem('voucher_color_accent')
   const customMutedColor = localStorage.getItem('voucher_color_muted')
@@ -108,10 +110,12 @@ async function urlToBase64(url) {
 }
 
 export async function generateVoucherImage(voucher, locationName) {
+  // Sempre busca as configurações mais recentes do Supabase antes de gerar
+  await loadVoucherSettings()
+
   const t = getVoucherSettings()
   const logoUrl = localStorage.getItem('cathedral_logo') || null
 
-  // Converte para base64 para evitar bloqueio CORS no html2canvas
   let logoSrc = null
   if (logoUrl) {
     logoSrc = logoUrl.startsWith('data:') ? logoUrl : await urlToBase64(logoUrl)
@@ -121,10 +125,7 @@ export async function generateVoucherImage(voucher, locationName) {
     ? `<img src="${logoSrc}" style="height:38px; object-fit:contain; filter:${t.logoFilter};" />`
     : `<span style="font-size:22px; font-weight:800; letter-spacing:2px; color:${t.accentColor};">CATHEDRAL</span>`
 
-  // Define texto de validade de local
-  const locationText = locationName
-    ? `Válido em: ${locationName}`
-    : 'Válido em todas as unidades'
+  const locationText = locationName ? `Válido em: ${locationName}` : 'Válido em todas as unidades'
 
   const container = document.createElement('div')
   container.style.cssText = `
@@ -166,14 +167,8 @@ export async function generateVoucherImage(voucher, locationName) {
   `
 
   document.body.appendChild(container)
-
   try {
-    const canvas = await html2canvas(container, {
-      scale: 2,
-      backgroundColor: null,
-      useCORS: true,
-      allowTaint: true,
-    })
+    const canvas = await html2canvas(container, { scale: 2, backgroundColor: null, useCORS: true, allowTaint: true })
     document.body.removeChild(container)
     return canvas
   } catch (e) {

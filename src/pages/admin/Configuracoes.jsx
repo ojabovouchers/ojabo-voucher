@@ -79,6 +79,9 @@ export default function Configuracoes() {
   const [customBg, setCustomBg] = useState(null)
   const [customBgPreview, setCustomBgPreview] = useState(null)
   const [footerText, setFooterText] = useState('')
+  const [colorText, setColorText] = useState('')
+  const [colorAccent, setColorAccent] = useState('')
+  const [colorMuted, setColorMuted] = useState('')
   const [colorOverrides, setColorOverrides] = useState({})
   const [locations, setLocations] = useState([])
   const [generating, setGenerating] = useState(false)
@@ -125,9 +128,10 @@ export default function Configuracoes() {
         const savedCustomBg = localStorage.getItem('voucher_custom_bg')
         if (savedCustomBg) setCustomBgPreview(savedCustomBg)
       }
-      // Carrega cores
-      const colorKeys = ['voucher_color_text', 'voucher_color_accent', 'voucher_color_muted']
-      colorKeys.forEach(k => { if (map[k]) localStorage.setItem(k, map[k]) })
+      // Carrega cores nos estados e localStorage
+      if (map.voucher_color_text) { setColorText(map.voucher_color_text); localStorage.setItem('voucher_color_text', map.voucher_color_text) }
+      if (map.voucher_color_accent) { setColorAccent(map.voucher_color_accent); localStorage.setItem('voucher_color_accent', map.voucher_color_accent) }
+      if (map.voucher_color_muted) { setColorMuted(map.voucher_color_muted); localStorage.setItem('voucher_color_muted', map.voucher_color_muted) }
     })
 
     supabase.from('locations').select('*').order('name').then(({ data }) => {
@@ -192,14 +196,11 @@ export default function Configuracoes() {
 
   function handleColorChange(key, value) {
     setColorOverrides(prev => ({ ...prev, [key]: value }))
+    if (key === 'voucher_color_text') setColorText(value || '')
+    if (key === 'voucher_color_accent') setColorAccent(value || '')
+    if (key === 'voucher_color_muted') setColorMuted(value || '')
     if (value === null) localStorage.removeItem(key)
     else localStorage.setItem(key, value)
-    // Persiste no Supabase em background
-    if (value === null) {
-      supabase.from('settings').delete().eq('key', key).then(() => {})
-    } else {
-      supabase.from('settings').upsert({ key, value }, { onConflict: 'key' }).then(() => {})
-    }
   }
 
   async function saveTemplate() {
@@ -222,12 +223,10 @@ export default function Configuracoes() {
         toSave.push({ key: 'voucher_custom_bg', value: customBg })
       }
 
-      // Salva cores personalizadas
-      const colorKeys = ['voucher_color_text', 'voucher_color_accent', 'voucher_color_muted']
-      colorKeys.forEach(k => {
-        const val = localStorage.getItem(k)
-        if (val) toSave.push({ key: k, value: val })
-      })
+      // Salva cores personalizadas dos estados React
+      if (colorText) { toSave.push({ key: 'voucher_color_text', value: colorText }); localStorage.setItem('voucher_color_text', colorText) }
+      if (colorAccent) { toSave.push({ key: 'voucher_color_accent', value: colorAccent }); localStorage.setItem('voucher_color_accent', colorAccent) }
+      if (colorMuted) { toSave.push({ key: 'voucher_color_muted', value: colorMuted }); localStorage.setItem('voucher_color_muted', colorMuted) }
 
       await Promise.all(toSave.map(({ key, value }) =>
         supabase.from('settings').upsert({ key, value }, { onConflict: 'key' })
