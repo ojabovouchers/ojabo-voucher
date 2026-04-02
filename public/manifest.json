@@ -1,7 +1,7 @@
 {
-  "name": "Cathedral Vouchers",
-  "short_name": "Cathedral",
-  "description": "Sistema de vouchers de consumação Cathedral",
+  "name": "O Jabo Vouchers",
+  "short_name": "O Jabo",
+  "description": "Sistema de vouchers de consumação O Jabo",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
