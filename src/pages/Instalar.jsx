@@ -181,22 +181,31 @@ export default function Instalar() {
           {!device?.isIOS && !device?.isAndroid && (
             <>
               <div style={badgeStyle('#374151', '#fff')}>💻 Computador</div>
-              <p style={subtitleStyle}>Instale pelo Chrome:</p>
 
-              <StepRow n={1}>
-                Clique no ícone de instalar <IconBox>⬇</IconBox> que aparece na barra de endereço do Chrome
-              </StepRow>
-              <StepRow n={2}>
-                Clique em <IconBox>Instalar</IconBox> na janela que aparecer
-              </StepRow>
-              <StepRow n={3}>
-                O app abre como uma janela independente e fica no menu iniciar 🎉
-              </StepRow>
-
-              {deferredPrompt && (
-                <button onClick={handleInstallAndroid} style={{ ...btnStyle, marginTop: 8 }}>
-                  Instalar agora
-                </button>
+              {/* Botão automático se disponível */}
+              {deferredPrompt ? (
+                <>
+                  <p style={subtitleStyle}>Clique no botão abaixo para instalar:</p>
+                  <button onClick={handleInstallAndroid} style={btnStyle}>
+                    Instalar agora
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p style={subtitleStyle}>Instale pelo Chrome:</p>
+                  <StepRow n={1}>
+                    Clique no ícone de instalar <IconBox>⬇</IconBox> que aparece na barra de endereço do Chrome
+                  </StepRow>
+                  <StepRow n={2}>
+                    Clique em <IconBox>Instalar</IconBox> na janela que aparecer
+                  </StepRow>
+                  <StepRow n={3}>
+                    O app abre como uma janela independente e fica no menu iniciar 🎉
+                  </StepRow>
+                  <div style={{ ...alertStyle, marginTop: 12 }}>
+                    💡 Se o ícone <strong>⬇</strong> não aparecer na barra do Chrome, o app pode já estar instalado. Procure "Cathedral Vouchers" no menu iniciar.
+                  </div>
+                </>
               )}
             </>
           )}
