@@ -20,13 +20,11 @@
         if (t) { document.title = t; }
       } catch(e) {}
 
-      // Atualiza nome do app no manifest dinamicamente após carregar
-      // Não interfere no beforeinstallprompt — apenas atualiza o nome
+      // Atualiza APENAS o título dinamicamente — não mexe no manifest
+      // (mexer no manifest invalida o beforeinstallprompt e quebra o botão de instalar)
       window.addEventListener('load', function() {
         try {
           var SUPABASE_URL = 'https://useudmzyutaezwjdmdad.supabase.co'
-          var SUPABASE_KEY = document.querySelector('meta[name="supabase-key"]')
-          // Busca nome do app no Supabase
           fetch(SUPABASE_URL + '/rest/v1/settings?key=in.(app_title,sidebar_name)&select=key,value', {
             headers: {
               'apikey': '%VITE_SUPABASE_ANON_KEY%',
@@ -36,40 +34,15 @@
             .then(function(data) {
               var map = {}
               data.forEach(function(s) { map[s.key] = s.value })
-              var appName = map.app_title || map.sidebar_name || 'Cathedral Vouchers'
+              var appName = map.app_title || 'Cathedral Vouchers'
               var shortName = map.sidebar_name || appName
-
-              // Atualiza title e apple-mobile-web-app-title
-              if (appName) {
-                document.title = appName
-                var appleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]')
-                if (appleMeta) appleMeta.setAttribute('content', shortName)
-              }
-
-              // Atualiza manifest dinamicamente com o nome correto
-              var manifestLink = document.querySelector('link[rel="manifest"]')
-              if (manifestLink) {
-                var blob = new Blob([JSON.stringify({
-                  name: appName,
-                  short_name: shortName,
-                  description: 'Sistema de vouchers - ' + shortName,
-                  start_url: '/',
-                  display: 'standalone',
-                  background_color: '#000000',
-                  theme_color: '#000000',
-                  icons: [
-                    { src: SUPABASE_URL + '/storage/v1/object/public/branding/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-                    { src: SUPABASE_URL + '/storage/v1/object/public/branding/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
-                    { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-                    { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
-                  ],
-                  shortcuts: [
-                    { name: 'Operador', short_name: 'Operador', url: '/operador', icons: [{ src: '/icon-192.png', sizes: '192x192' }] },
-                    { name: 'Admin', short_name: 'Admin', url: '/admin', icons: [{ src: '/icon-192.png', sizes: '192x192' }] }
-                  ]
-                })], { type: 'application/manifest+json' })
-                manifestLink.setAttribute('href', URL.createObjectURL(blob))
-              }
+              // Salva no localStorage para uso do React
+              if (map.app_title) localStorage.setItem('app_title', map.app_title)
+              if (map.sidebar_name) localStorage.setItem('sidebar_name', map.sidebar_name)
+              // Atualiza título e meta do iOS
+              document.title = appName
+              var appleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]')
+              if (appleMeta) appleMeta.setAttribute('content', shortName)
             }).catch(function() {})
         } catch(e) {}
       })
