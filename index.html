@@ -5,7 +5,7 @@
     <meta name="google" content="notranslate" />
     <link rel="icon" type="image/png" href="https://useudmzyutaezwjdmdad.supabase.co/storage/v1/object/public/branding/favicon.png" id="favicon-link" />
     <link rel="apple-touch-icon" href="https://useudmzyutaezwjdmdad.supabase.co/storage/v1/object/public/branding/icon-192.png" />
-    <link rel="manifest" href="/api/manifest" id="manifest-link" />
+    <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -14,11 +14,65 @@
     <meta name="theme-color" content="#000000" />
     <title>Cathedral Vouchers</title>
     <script>
-      // Aplica o título salvo ANTES do React carregar — elimina o flash
+      // Aplica título salvo ANTES do React carregar — elimina o flash
       try {
         var t = localStorage.getItem('app_title');
-        if (t) document.title = t;
+        if (t) { document.title = t; }
       } catch(e) {}
+
+      // Atualiza nome do app no manifest dinamicamente após carregar
+      // Não interfere no beforeinstallprompt — apenas atualiza o nome
+      window.addEventListener('load', function() {
+        try {
+          var SUPABASE_URL = 'https://useudmzyutaezwjdmdad.supabase.co'
+          var SUPABASE_KEY = document.querySelector('meta[name="supabase-key"]')
+          // Busca nome do app no Supabase
+          fetch(SUPABASE_URL + '/rest/v1/settings?key=in.(app_title,sidebar_name)&select=key,value', {
+            headers: {
+              'apikey': '%VITE_SUPABASE_ANON_KEY%',
+              'Authorization': 'Bearer %VITE_SUPABASE_ANON_KEY%'
+            }
+          }).then(function(r) { return r.json() })
+            .then(function(data) {
+              var map = {}
+              data.forEach(function(s) { map[s.key] = s.value })
+              var appName = map.app_title || map.sidebar_name || 'Cathedral Vouchers'
+              var shortName = map.sidebar_name || appName
+
+              // Atualiza title e apple-mobile-web-app-title
+              if (appName) {
+                document.title = appName
+                var appleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]')
+                if (appleMeta) appleMeta.setAttribute('content', shortName)
+              }
+
+              // Atualiza manifest dinamicamente com o nome correto
+              var manifestLink = document.querySelector('link[rel="manifest"]')
+              if (manifestLink) {
+                var blob = new Blob([JSON.stringify({
+                  name: appName,
+                  short_name: shortName,
+                  description: 'Sistema de vouchers - ' + shortName,
+                  start_url: '/',
+                  display: 'standalone',
+                  background_color: '#000000',
+                  theme_color: '#000000',
+                  icons: [
+                    { src: SUPABASE_URL + '/storage/v1/object/public/branding/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+                    { src: SUPABASE_URL + '/storage/v1/object/public/branding/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+                    { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+                    { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+                  ],
+                  shortcuts: [
+                    { name: 'Operador', short_name: 'Operador', url: '/operador', icons: [{ src: '/icon-192.png', sizes: '192x192' }] },
+                    { name: 'Admin', short_name: 'Admin', url: '/admin', icons: [{ src: '/icon-192.png', sizes: '192x192' }] }
+                  ]
+                })], { type: 'application/manifest+json' })
+                manifestLink.setAttribute('href', URL.createObjectURL(blob))
+              }
+            }).catch(function() {})
+        } catch(e) {}
+      })
     </script>
   </head>
   <body>

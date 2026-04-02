@@ -1,4 +1,4 @@
-const CACHE = 'cathedral-v1'
+const CACHE = 'cathedral-v2'
 const OFFLINE = ['/login', '/operador']
 
 self.addEventListener('install', e => {
