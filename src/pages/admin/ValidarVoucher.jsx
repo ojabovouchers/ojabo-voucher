@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useBranding } from '../../lib/useBranding'
 import { supabase } from '../../lib/supabase'
 import { useAuth, useToast } from '../../components/AppProvider'
 import { formatCurrency, formatDate } from '../../lib/utils'
@@ -6,6 +7,8 @@ import { formatCurrency, formatDate } from '../../lib/utils'
 export default function ValidarVoucher() {
   const { profile } = useAuth()
   const toast = useToast()
+  const branding = useBranding()
+  const prefix = branding.voucherPrefix || 'CATH'
   const [code, setCode] = useState('')
   const [voucher, setVoucher] = useState(null)
   const [error, setError] = useState('')
@@ -113,7 +116,7 @@ export default function ValidarVoucher() {
                 <input
                   value={code}
                   onChange={e => { setCode(e.target.value); setError(''); setVoucher(null) }}
-                  placeholder="CATH-XXXX-XXXX"
+                  placeholder={`${prefix}-XXXX-XXXX`}
                   style={{ fontSize: 18, textTransform: 'uppercase', letterSpacing: 2, textAlign: 'center', padding: '14px' }}
                   autoFocus autoComplete="off"
                 />

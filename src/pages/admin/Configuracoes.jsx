@@ -88,6 +88,8 @@ export default function Configuracoes() {
   const [saving, setSaving] = useState(false)
   const [logoLoading, setLogoLoading] = useState(false)
   const [establishmentName, setEstablishmentName] = useState('')
+  const [logoMode, setLogoMode] = useState('image') // 'image' ou 'text'
+  const [logoTextFont, setLogoTextFont] = useState('serif')
 
   useEffect(() => {
     // Carrega logo do Supabase Storage
@@ -104,7 +106,8 @@ export default function Configuracoes() {
     // Carrega configurações do Supabase
     supabase.from('settings').select('key, value').in('key', [
       'voucher_template', 'voucher_footer_text', 'voucher_custom_bg',
-      'voucher_color_text', 'voucher_color_accent', 'voucher_color_muted'
+      'voucher_color_text', 'voucher_color_accent', 'voucher_color_muted',
+      'voucher_logo_mode', 'voucher_logo_font'
     ]).then(({ data }) => {
       if (!data) return
       const map = {}
@@ -132,6 +135,8 @@ export default function Configuracoes() {
       if (map.voucher_color_text) { setColorText(map.voucher_color_text); localStorage.setItem('voucher_color_text', map.voucher_color_text) }
       if (map.voucher_color_accent) { setColorAccent(map.voucher_color_accent); localStorage.setItem('voucher_color_accent', map.voucher_color_accent) }
       if (map.voucher_color_muted) { setColorMuted(map.voucher_color_muted); localStorage.setItem('voucher_color_muted', map.voucher_color_muted) }
+      if (map.voucher_logo_mode) { setLogoMode(map.voucher_logo_mode); localStorage.setItem('voucher_logo_mode', map.voucher_logo_mode) }
+      if (map.voucher_logo_font) { setLogoTextFont(map.voucher_logo_font); localStorage.setItem('voucher_logo_font', map.voucher_logo_font) }
     })
 
     supabase.from('locations').select('*').order('name').then(({ data }) => {
@@ -227,6 +232,10 @@ export default function Configuracoes() {
       if (colorText) { toSave.push({ key: 'voucher_color_text', value: colorText }); localStorage.setItem('voucher_color_text', colorText) }
       if (colorAccent) { toSave.push({ key: 'voucher_color_accent', value: colorAccent }); localStorage.setItem('voucher_color_accent', colorAccent) }
       if (colorMuted) { toSave.push({ key: 'voucher_color_muted', value: colorMuted }); localStorage.setItem('voucher_color_muted', colorMuted) }
+      toSave.push({ key: 'voucher_logo_mode', value: logoMode })
+      toSave.push({ key: 'voucher_logo_font', value: logoTextFont })
+      localStorage.setItem('voucher_logo_mode', logoMode)
+      localStorage.setItem('voucher_logo_font', logoTextFont)
 
       await Promise.all(toSave.map(({ key, value }) =>
         supabase.from('settings').upsert({ key, value }, { onConflict: 'key' })
@@ -296,23 +305,94 @@ export default function Configuracoes() {
 
         {/* LOGO */}
         <div className="card" style={{ marginBottom: 20 }}>
-          <div className="card-header"><h2>Logo do Estabelecimento</h2></div>
+          <div className="card-header"><h2>Identificação no Voucher</h2></div>
           <p style={{ color: '#6b7280', marginBottom: 16, fontSize: 13 }}>
-            Aparece na arte dos vouchers. Use PNG com fundo transparente para melhor resultado.
+            Escolha como o estabelecimento aparece no canto superior do voucher.
           </p>
-          {logoPreview && (
-            <div style={{ marginBottom: 16, padding: 16, background: '#1a1a2e', borderRadius: 10, display: 'inline-flex' }}>
-              <img src={logoPreview} alt="Logo" style={{ maxHeight: 50, maxWidth: 180, objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
-            </div>
+
+          {/* Escolha do modo */}
+          <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+            {[
+              { value: 'image', label: '🖼️ Logomarca', desc: 'Upload de imagem' },
+              { value: 'text', label: '✏️ Texto', desc: 'Nome do estabelecimento' },
+            ].map(opt => (
+              <div key={opt.value} onClick={() => setLogoMode(opt.value)}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: 10, cursor: 'pointer',
+                  border: `2px solid ${logoMode === opt.value ? '#e2b04a' : '#e5e7eb'}`,
+                  background: logoMode === opt.value ? '#fffbeb' : '#fff',
+                }}>
+                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>{opt.label}</div>
+                <div style={{ fontSize: 12, color: '#6b7280' }}>{opt.desc}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Modo imagem */}
+          {logoMode === 'image' && (
+            <>
+              {logoPreview && (
+                <div style={{ marginBottom: 16, padding: 16, background: '#1a1a2e', borderRadius: 10, display: 'inline-flex' }}>
+                  <img src={logoPreview} alt="Logo" style={{ maxHeight: 50, maxWidth: 180, objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+                </div>
+              )}
+              <div className="form-group">
+                <label>Selecionar arquivo</label>
+                <input type="file" accept="image/*" onChange={handleLogoUpload} />
+                <small style={{ color: '#6b7280', fontSize: 12, marginTop: 4, display: 'block' }}>
+                  Use PNG com fundo transparente para melhor resultado.
+                </small>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button className="btn btn-primary" onClick={saveLogo} disabled={!logo || logoLoading}>
+                  {logoLoading ? 'Salvando...' : 'Salvar Logo'}
+                </button>
+                {logoPreview && <button className="btn btn-danger" onClick={removeLogo}>Remover</button>}
+              </div>
+            </>
           )}
-          <div className="form-group">
-            <label>Selecionar arquivo</label>
-            <input type="file" accept="image/*" onChange={handleLogoUpload} />
-          </div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn btn-primary" onClick={saveLogo} disabled={!logo || logoLoading}>{logoLoading ? 'Salvando...' : 'Salvar Logo'}</button>
-            {logoPreview && <button className="btn btn-danger" onClick={removeLogo}>Remover</button>}
-          </div>
+
+          {/* Modo texto */}
+          {logoMode === 'text' && (
+            <>
+              <div style={{ marginBottom: 16, padding: 16, background: '#1a1a2e', borderRadius: 10, display: 'inline-block' }}>
+                <span style={{
+                  color: '#e2b04a', fontSize: 22, fontWeight: 800,
+                  fontFamily: logoTextFont === 'serif' ? 'Georgia, serif'
+                    : logoTextFont === 'sans' ? 'Arial, sans-serif'
+                    : logoTextFont === 'mono' ? 'Courier New, monospace'
+                    : "'Palatino', serif",
+                  letterSpacing: 2,
+                }}>
+                  {establishmentName || 'Nome do Estabelecimento'}
+                </span>
+              </div>
+              <div className="form-group" style={{ marginTop: 12 }}>
+                <label>Fonte do texto</label>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {[
+                    { value: 'sans', label: 'Sans-serif', sample: 'Arial' },
+                    { value: 'serif', label: 'Serif', sample: 'Georgia' },
+                    { value: 'elegant', label: 'Elegante', sample: 'Palatino' },
+                    { value: 'mono', label: 'Mono', sample: 'Courier' },
+                  ].map(f => (
+                    <div key={f.value} onClick={() => setLogoTextFont(f.value)}
+                      style={{
+                        padding: '8px 16px', borderRadius: 8, cursor: 'pointer',
+                        border: `2px solid ${logoTextFont === f.value ? '#e2b04a' : '#e5e7eb'}`,
+                        background: logoTextFont === f.value ? '#fffbeb' : '#fff',
+                        fontFamily: f.sample, fontSize: 14,
+                      }}>
+                      {f.label}
+                    </div>
+                  ))}
+                </div>
+                <small style={{ color: '#6b7280', fontSize: 12, marginTop: 8, display: 'block' }}>
+                  O nome exibido vem do campo "Nome do estabelecimento" abaixo.
+                </small>
+              </div>
+            </>
+          )}
         </div>
 
         {/* TEMPLATE */}

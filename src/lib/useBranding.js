@@ -22,6 +22,7 @@ function mapToBranding(map) {
     font: map.sidebar_font || DEFAULTS.font,
     appTitle: map.app_title || DEFAULTS.appTitle,
     loginBg: map.sidebar_color || DEFAULTS.loginBg,
+    voucherPrefix: map.voucher_prefix || 'CATH',
   }
 }
 

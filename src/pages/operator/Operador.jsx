@@ -10,6 +10,7 @@ export default function Operador() {
   const { user, profile, signOut } = useAuth()
   const navigate = useNavigate()
   const branding = useBranding()
+  const prefix = branding.voucherPrefix || localStorage.getItem('voucher_prefix') || 'CATH'
   useEffect(() => { document.title = branding.appTitle }, [branding.appTitle])
 
   // Aba ativa
@@ -216,7 +217,7 @@ export default function Operador() {
                     <input
                       value={code}
                       onChange={e => { setCode(e.target.value); setError(''); setVoucher(null) }}
-                      placeholder="CATH-XXXX-XXXX"
+                      placeholder={`${prefix}-XXXX-XXXX`}
                       style={{ fontSize: 18, textTransform: 'uppercase', letterSpacing: 2, textAlign: 'center', padding: '12px' }}
                       autoFocus autoComplete="off"
                     />

@@ -48,6 +48,7 @@ export async function loadVoucherSettings() {
     const keys = [
       'voucher_template', 'voucher_footer_text', 'voucher_custom_bg',
       'voucher_color_text', 'voucher_color_accent', 'voucher_color_muted',
+      'voucher_logo_mode', 'voucher_logo_font', 'establishment_name',
     ]
     const { data } = await supabase.from('settings').select('key, value').in('key', keys)
     if (data) {
@@ -92,6 +93,8 @@ export function getVoucherSettings() {
     accentColor: customAccentColor || template.accentColor,
     mutedColor: customMutedColor || template.mutedColor,
     footerText: localStorage.getItem('voucher_footer_text') || 'Apresente este voucher ao operador de caixa para efetuar o desconto',
+    logoMode: localStorage.getItem('voucher_logo_mode') || 'image',
+    logoFont: localStorage.getItem('voucher_logo_font') || 'serif',
   }
 }
 
@@ -121,9 +124,24 @@ export async function generateVoucherImage(voucher, locationName) {
     logoSrc = logoUrl.startsWith('data:') ? logoUrl : await urlToBase64(logoUrl)
   }
 
-  const logoHtml = logoSrc
-    ? `<img src="${logoSrc}" style="height:38px; object-fit:contain; filter:${t.logoFilter};" />`
-    : `<span style="font-size:22px; font-weight:800; letter-spacing:2px; color:${t.accentColor};">CATHEDRAL</span>`
+  // Modo logo: imagem ou texto
+  const logoMode = t.logoMode || 'image'
+  const logoFont = t.logoFont || 'serif'
+  const fontFamily = logoFont === 'sans' ? 'Arial, sans-serif'
+    : logoFont === 'serif' ? 'Georgia, serif'
+    : logoFont === 'elegant' ? 'Palatino, serif'
+    : logoFont === 'mono' ? 'Courier New, monospace'
+    : 'Georgia, serif'
+  const estName = localStorage.getItem('establishment_name') || 'CATHEDRAL'
+
+  let logoHtml
+  if (logoMode === 'text') {
+    logoHtml = `<span style="font-size:20px; font-weight:800; letter-spacing:2px; color:${t.accentColor}; font-family:${fontFamily};">${estName}</span>`
+  } else if (logoSrc) {
+    logoHtml = `<img src="${logoSrc}" style="height:38px; object-fit:contain; filter:${t.logoFilter};" />`
+  } else {
+    logoHtml = `<span style="font-size:20px; font-weight:800; letter-spacing:2px; color:${t.accentColor}; font-family:${fontFamily};">${estName}</span>`
+  }
 
   const locationText = locationName ? `Válido em: ${locationName}` : 'Válido em todas as unidades'
 
