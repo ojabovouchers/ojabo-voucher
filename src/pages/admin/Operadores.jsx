@@ -166,11 +166,26 @@ export default function Operadores() {
 
     setSaving(true)
     try {
-      const { data, error } = await supabase.rpc('delete_or_deactivate_operator', {
+      const serviceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+
+      if (!hasHistory && op.auth_user_id) {
+        // Deleta do auth.users — remove acesso completamente
+        await fetch(`${supabaseUrl}/auth/v1/admin/users/${op.auth_user_id}`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': serviceKey,
+            'Authorization': `Bearer ${serviceKey}`,
+          },
+        })
+      }
+
+      const { error } = await supabase.rpc('delete_or_deactivate_operator', {
         p_operator_id: op.id,
       })
       if (error) throw error
-      if (data?.action === 'deleted') toast('Operador deletado.', 'success')
+
+      if (!hasHistory) toast('Operador deletado.', 'success')
       else toast('Operador desativado. Acesso bloqueado.', 'success')
       loadData()
     } catch (err) {
