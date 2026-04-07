@@ -1,7 +1,7 @@
 -- ============================================
 -- CATHEDRAL VOUCHER SYSTEM — Setup do Banco
 -- Execute este SQL completo no Supabase SQL Editor
--- Versão 1.2 — 02/04/2026
+-- Versão 1.3 — 02/04/2026
 -- ============================================
 
 -- ============================================
@@ -23,8 +23,19 @@ CREATE TABLE IF NOT EXISTS operators (
   email TEXT NOT NULL UNIQUE,
   role TEXT NOT NULL DEFAULT 'operator' CHECK (role IN ('admin', 'operator')),
   location_id UUID REFERENCES locations(id) ON DELETE SET NULL,
-  is_active BOOLEAN DEFAULT true,
+  is_active BOOLEAN NOT NULL DEFAULT true,
   is_master BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Chaves PIX
+CREATE TABLE IF NOT EXISTS pix_keys (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_name TEXT NOT NULL,
+  bank TEXT NOT NULL,
+  agency TEXT NOT NULL,
+  account TEXT NOT NULL,
+  pix_key TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -35,6 +46,7 @@ CREATE TABLE IF NOT EXISTS clients (
   phone TEXT NOT NULL,
   payment_method TEXT NOT NULL DEFAULT 'PIX',
   pix_account TEXT,
+  pix_key_id UUID REFERENCES pix_keys(id) ON DELETE SET NULL,
   purchase_date TIMESTAMPTZ DEFAULT now(),
   created_at TIMESTAMPTZ DEFAULT now()
 );
@@ -53,21 +65,12 @@ CREATE TABLE IF NOT EXISTS vouchers (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Chaves PIX
-CREATE TABLE IF NOT EXISTS pix_keys (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  key_type TEXT NOT NULL,
-  key_value TEXT NOT NULL,
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
 -- Configurações do sistema (branding, voucher, etc.)
 CREATE TABLE IF NOT EXISTS settings (
-  key TEXT PRIMARY KEY,
-  value TEXT NOT NULL,
-  updated_at TIMESTAMPTZ DEFAULT now()
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  key TEXT NOT NULL UNIQUE,
+  value TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- ============================================
@@ -89,59 +92,41 @@ ALTER TABLE vouchers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pix_keys ENABLE ROW LEVEL SECURITY;
 ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 
--- LOCATIONS: qualquer autenticado lê; admin escreve
+-- LOCATIONS
 CREATE POLICY "locations_read" ON locations
   FOR SELECT TO authenticated USING (true);
-
 CREATE POLICY "locations_write" ON locations
-  FOR ALL TO authenticated
-  USING (EXISTS (SELECT 1 FROM operators WHERE auth_user_id = auth.uid() AND role = 'admin'))
-  WITH CHECK (EXISTS (SELECT 1 FROM operators WHERE auth_user_id = auth.uid() AND role = 'admin'));
+  FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- OPERATORS: autenticado lê o próprio; admin lê todos
+-- OPERATORS
 CREATE POLICY "operators_read" ON operators
-  FOR SELECT TO authenticated
-  USING (
-    auth_user_id = auth.uid() OR
-    EXISTS (SELECT 1 FROM operators o WHERE o.auth_user_id = auth.uid() AND o.role = 'admin')
-  );
-
+  FOR SELECT TO authenticated USING (true);
 CREATE POLICY "operators_write" ON operators
-  FOR ALL TO authenticated
-  USING (true) WITH CHECK (true);
+  FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- CLIENTS: autenticados leem; admin e operador (quando permitido) escrevem
+-- CLIENTS
 CREATE POLICY "clients_read" ON clients
   FOR SELECT TO authenticated USING (true);
-
 CREATE POLICY "clients_write" ON clients
-  FOR ALL TO authenticated
-  USING (true) WITH CHECK (true);
+  FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- VOUCHERS: autenticados leem; admin e operador (quando permitido) escrevem
+-- VOUCHERS
 CREATE POLICY "vouchers_read" ON vouchers
   FOR SELECT TO authenticated USING (true);
-
 CREATE POLICY "vouchers_write" ON vouchers
-  FOR ALL TO authenticated
-  USING (true) WITH CHECK (true);
+  FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- PIX_KEYS: autenticados leem; admin escreve
+-- PIX_KEYS
 CREATE POLICY "pix_keys_read" ON pix_keys
   FOR SELECT TO authenticated USING (true);
-
 CREATE POLICY "pix_keys_write" ON pix_keys
-  FOR ALL TO authenticated
-  USING (EXISTS (SELECT 1 FROM operators WHERE auth_user_id = auth.uid() AND role = 'admin'))
-  WITH CHECK (EXISTS (SELECT 1 FROM operators WHERE auth_user_id = auth.uid() AND role = 'admin'));
+  FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- SETTINGS: autenticados leem; admin escreve
+-- SETTINGS
 CREATE POLICY "settings_read" ON settings
   FOR SELECT TO authenticated USING (true);
-
 CREATE POLICY "settings_write" ON settings
-  FOR ALL TO authenticated
-  USING (true) WITH CHECK (true);
+  FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- ============================================
 -- 4. FUNÇÕES AUXILIARES
@@ -221,15 +206,4 @@ ON CONFLICT (key) DO NOTHING;
 -- 2. Nome: branding
 -- 3. Marque: Public bucket
 -- 4. Clique em Save
---
--- O bucket armazenará:
--- - logo       (logo do estabelecimento nos vouchers)
--- - icon-192.png  (ícone PWA 192x192)
--- - icon-512.png  (ícone PWA 512x512)
--- - favicon.png   (ícone da aba do navegador)
---
--- Os ícones são gerados automaticamente pelo Painel Dev > Ícones do App
-
--- ============================================
--- FIM DO SETUP
 -- ============================================

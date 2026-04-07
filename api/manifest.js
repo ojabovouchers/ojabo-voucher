@@ -1,6 +1,6 @@
 export default async function handler(req, res) {
-  const SUPABASE_URL = 'https://useudmzyutaezwjdmdad.supabase.co'
-  const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || ''
+  const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://useudmzyutaezwjdmdad.supabase.co'
+  const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || ''
 
   let icon192 = `${SUPABASE_URL}/storage/v1/object/public/branding/icon-192.png`
   let icon512 = `${SUPABASE_URL}/storage/v1/object/public/branding/icon-512.png`
@@ -45,10 +45,3 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-cache')
   res.status(200).json(manifest)
 }
-```
-
-A diferença principal é que agora a URL do Supabase está **fixa dentro do código** — não depende de variável de ambiente. Depois:
-```
-git add .
-git commit -m "manifest url storage fixa"
-git push origin main

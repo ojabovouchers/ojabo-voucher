@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="google" content="notranslate" />
-    <link rel="icon" type="image/png" href="https://useudmzyutaezwjdmdad.supabase.co/storage/v1/object/public/branding/favicon.png" id="favicon-link" />
-    <link rel="apple-touch-icon" href="https://useudmzyutaezwjdmdad.supabase.co/storage/v1/object/public/branding/icon-192.png" />
+    <link rel="icon" type="image/png" href="%VITE_SUPABASE_URL%/storage/v1/object/public/branding/favicon.png" id="favicon-link" />
+    <link rel="apple-touch-icon" href="%VITE_SUPABASE_URL%/storage/v1/object/public/branding/icon-192.png" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -24,7 +24,7 @@
       // (mexer no manifest invalida o beforeinstallprompt e quebra o botão de instalar)
       window.addEventListener('load', function() {
         try {
-          var SUPABASE_URL = 'https://useudmzyutaezwjdmdad.supabase.co'
+          var SUPABASE_URL = '%VITE_SUPABASE_URL%'
           fetch(SUPABASE_URL + '/rest/v1/settings?key=in.(app_title,sidebar_name)&select=key,value', {
             headers: {
               'apikey': '%VITE_SUPABASE_ANON_KEY%',
