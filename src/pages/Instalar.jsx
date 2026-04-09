@@ -70,7 +70,14 @@ export default function Instalar() {
     }
   }
 
-  const iconSrc = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/branding/icon-192.png`
+  const [iconSrc, setIconSrc] = useState('/icon-192.png')
+
+  useEffect(() => {
+    const storageUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/branding/icon-192.png`
+    fetch(storageUrl, { method: 'HEAD' })
+      .then(r => { if (r.ok) setIconSrc(storageUrl) })
+      .catch(() => {})
+  }, [])
 
   if (installed) {
     return (
@@ -203,7 +210,7 @@ export default function Instalar() {
                     O app abre como uma janela independente e fica no menu iniciar 🎉
                   </StepRow>
                   <div style={{ ...alertStyle, marginTop: 12 }}>
-                    💡 Se o ícone <strong>⬇</strong> não aparecer na barra do Chrome, o app pode já estar instalado. Procure "Cathedral Vouchers" no menu iniciar.
+                    💡 Se o ícone <strong>⬇</strong> não aparecer na barra do Chrome, o app pode já estar instalado. Procure o nome do app no menu iniciar.
                   </div>
                 </>
               )}

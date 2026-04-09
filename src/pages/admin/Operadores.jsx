@@ -218,11 +218,21 @@ export default function Operadores() {
     }
     setSaving(true)
     try {
-      const { error } = await supabase.rpc('change_operator_password', {
-        p_operator_id: selected.id,
-        p_new_password: newPassword,
+      const serviceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      const res = await fetch(`${supabaseUrl}/auth/v1/admin/users/${selected.auth_user_id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+        },
+        body: JSON.stringify({ password: newPassword }),
       })
-      if (error) throw error
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.message || 'Erro ao alterar senha.')
+      }
       toast('Senha alterada com sucesso!', 'success')
       setShowPasswordModal(false)
       setNewPassword('')
@@ -238,11 +248,31 @@ export default function Operadores() {
     e.preventDefault()
     setSaving(true)
     try {
-      const { error } = await supabase.rpc('change_operator_email', {
-        p_operator_id: selected.id,
-        p_new_email: newEmail,
+      const serviceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+
+      // Atualiza email no auth.users
+      const res = await fetch(`${supabaseUrl}/auth/v1/admin/users/${selected.auth_user_id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+        },
+        body: JSON.stringify({ email: newEmail, email_confirm: true }),
       })
-      if (error) throw error
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.message || 'Erro ao alterar email.')
+      }
+
+      // Atualiza email na tabela operators
+      const { error: opError } = await supabase
+        .from('operators')
+        .update({ email: newEmail })
+        .eq('id', selected.id)
+      if (opError) throw opError
+
       toast('Email alterado com sucesso!', 'success')
       setShowEmailModal(false)
       setNewEmail('')

@@ -4,7 +4,7 @@ import { useToast } from '../../components/AppProvider'
 import { TEMPLATES, generateVoucherImage, getVoucherSettings } from '../../lib/voucherArt'
 
 const VOUCHER_PREVIEW = {
-  code: 'CATH-XXXX-0000',
+  code: `${localStorage.getItem('voucher_prefix') || 'CATH'}-XXXX-0000`,
   value: 100,
   expires_at: null,
 }
@@ -58,7 +58,7 @@ function TemplateCard({ template, selected, onSelect }) {
             <div style={{ fontSize: 10, color: template.mutedColor, textTransform: 'uppercase', letterSpacing: 1 }}>Voucher de Consumação</div>
             <div style={{ fontSize: 20, fontWeight: 800, color: template.accentColor }}>R$ 100,00</div>
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, color: template.textColor, background: template.codeBackground, padding: '3px 8px', borderRadius: 4, alignSelf: 'flex-start', border: `1px solid ${template.codeBorder}` }}>
-              CATH-XXXX
+              {(localStorage.getItem('voucher_prefix') || 'CATH')}-XXXX
             </div>
           </>
         )}
@@ -272,7 +272,7 @@ export default function Configuracoes() {
       localStorage.setItem('voucher_template', selectedTemplate)
       localStorage.setItem('voucher_footer_text', footerText)
       if (selectedTemplate === 'custom' && customBg) localStorage.setItem('voucher_custom_bg', customBg)
-      const canvas = await generateVoucherImage(VOUCHER_PREVIEW, 'Bar da Fábrica da Catedral')
+      const canvas = await generateVoucherImage(VOUCHER_PREVIEW, null)
       const link = document.createElement('a')
       link.download = 'preview-voucher.png'
       link.href = canvas.toDataURL('image/png')
