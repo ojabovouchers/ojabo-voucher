@@ -1,7 +1,7 @@
 -- ============================================
 -- CATHEDRAL VOUCHER SYSTEM — Setup do Banco
 -- Execute este SQL completo no Supabase SQL Editor
--- Versão 1.3 — 02/04/2026
+-- Versão 1.4 — 09/04/2026
 -- ============================================
 
 -- ============================================
@@ -92,38 +92,56 @@ ALTER TABLE vouchers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pix_keys ENABLE ROW LEVEL SECURITY;
 ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 
--- LOCATIONS
+-- -----------------------------------------------
+-- LOCATIONS — somente usuários autenticados
+-- -----------------------------------------------
 CREATE POLICY "locations_read" ON locations
   FOR SELECT TO authenticated USING (true);
 CREATE POLICY "locations_write" ON locations
   FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- OPERATORS
+-- -----------------------------------------------
+-- OPERATORS — somente usuários autenticados
+-- -----------------------------------------------
 CREATE POLICY "operators_read" ON operators
   FOR SELECT TO authenticated USING (true);
 CREATE POLICY "operators_write" ON operators
   FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- CLIENTS
+-- -----------------------------------------------
+-- CLIENTS — somente usuários autenticados
+-- -----------------------------------------------
 CREATE POLICY "clients_read" ON clients
   FOR SELECT TO authenticated USING (true);
 CREATE POLICY "clients_write" ON clients
   FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- VOUCHERS
+-- -----------------------------------------------
+-- VOUCHERS — somente usuários autenticados
+-- -----------------------------------------------
 CREATE POLICY "vouchers_read" ON vouchers
   FOR SELECT TO authenticated USING (true);
 CREATE POLICY "vouchers_write" ON vouchers
   FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- PIX_KEYS
+-- -----------------------------------------------
+-- PIX_KEYS — somente usuários autenticados
+-- -----------------------------------------------
 CREATE POLICY "pix_keys_read" ON pix_keys
   FOR SELECT TO authenticated USING (true);
 CREATE POLICY "pix_keys_write" ON pix_keys
   FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- SETTINGS
-CREATE POLICY "settings_read" ON settings
+-- -----------------------------------------------
+-- SETTINGS — leitura pública (anon) + escrita autenticada
+--
+-- MOTIVO: as configurações de branding (nome, cores, título)
+-- precisam ser lidas ANTES do login (página /instalar,
+-- título da aba, etc.). Não contém dados sensíveis.
+-- -----------------------------------------------
+CREATE POLICY "settings_read_public" ON settings
+  FOR SELECT TO anon USING (true);
+CREATE POLICY "settings_read_auth" ON settings
   FOR SELECT TO authenticated USING (true);
 CREATE POLICY "settings_write" ON settings
   FOR ALL TO authenticated USING (true) WITH CHECK (true);
