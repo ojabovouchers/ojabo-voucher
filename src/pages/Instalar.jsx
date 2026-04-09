@@ -70,7 +70,7 @@ export default function Instalar() {
     }
   }
 
-  const [iconSrc, setIconSrc] = useState('/icon-192.png')
+  const [iconSrc, setIconSrc] = useState(null)
 
   useEffect(() => {
     const storageUrl = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/branding/icon-192.png`
@@ -113,8 +113,10 @@ export default function Instalar() {
 
         {/* Header */}
         <div style={{ textAlign: 'center', padding: '32px 20px 24px', borderBottom: '1px solid #f3f4f6' }}>
-          <img src={iconSrc} alt="ícone"
-            style={{ width: 80, height: 80, borderRadius: 20, marginBottom: 16, display: 'block', margin: '0 auto 16px' }} />
+          {iconSrc && (
+            <img src={iconSrc} alt="ícone"
+              style={{ width: 80, height: 80, borderRadius: 20, marginBottom: 16, display: 'block', margin: '0 auto 16px' }} />
+          )}
           <div style={{ fontSize: 22, fontWeight: 800, color: '#1a1a2e' }}>
             {branding.name || 'CATHEDRAL'}
           </div>
